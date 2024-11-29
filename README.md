@@ -13,13 +13,22 @@ Create and activate a virtual environment:
    source venv/bin/activate 
    ```
 
-3. Install dependencies (while in venv)
+3. Install dependencies once you activate the venv
     ```bash    
     pip install -r requirements.txt
 
 4. Run the application
     ```bash
     fastapi dev main.py
+
+To deactivate the venv just run
+
+    ```bash
+    deactivate
+    ```
+
+
+
 
 ## Client Setup
 ```bash
