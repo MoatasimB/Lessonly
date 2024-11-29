@@ -21,6 +21,12 @@ Create and activate a virtual environment:
     ```bash
     fastapi dev main.py
 
+To stop the server: Command + C  
+To deactivate the venv run:
+```bash
+    deactivate
+```
+
 ## Client Setup
 ```bash
 cd frontend
