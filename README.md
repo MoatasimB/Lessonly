@@ -13,7 +13,7 @@ Create and activate a virtual environment:
    source venv/bin/activate 
    ```
 
-3. Install dependencies (while in venv)
+3. Install dependencies (while venv is activated)
     ```bash    
     pip install -r requirements.txt
 
