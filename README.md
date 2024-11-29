@@ -22,9 +22,18 @@ Create and activate a virtual environment:
     fastapi dev main.py
 
 ## Client Setup
-
+```bash
 cd frontend
+```
+```bash
 cd clientui
-npm install (first time only)
+```
+```bash
+npm install
+```
+```bash
 npm run dev
+```
+
+Only need to do npm install the first time to install dependencies
 
