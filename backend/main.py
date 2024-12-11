@@ -1,8 +1,12 @@
 from typing import Union
 
-from fastapi import FastAPI
-
+from fastapi import FastAPI, HTTPException, Depends
+from models.database import engine, SessionLocal, Base
+from models.models import User, LessonPlan
 app = FastAPI()
+
+Base.metadata.create_all(bind=engine)
+
 
 
 @app.get("/")
