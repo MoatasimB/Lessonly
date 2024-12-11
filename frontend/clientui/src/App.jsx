@@ -1,5 +1,6 @@
 import { useState } from "react";
 import "./App.css";
+import Nav from "./components/Nav";
 
 function App() {
   const [count, setCount] = useState(0);
@@ -35,13 +36,7 @@ function App() {
 
   return (
     <>
-      <div className="flex justify-between items-center bg-gray-700 w-full">
-        <div className="text-white font-bold">Calendar</div>
-        <div className=" p-4 justify-between flex gap-4  text-white font-bold text-right">
-          <button className="px-4 py-1 border rounded-md border-white bg-orange-400">Login</button>
-          <button className="px-4 py-1 border rounded-md border-white bg-cyan-500"> Sign Up </button>
-        </div>
-      </div>
+      <Nav />
       <div className="flex flex-col min-h-screen items-center justify-center bg-orange-100">
         <div className="mb-8 text-center">
           <h1 className="text-2xl font-bold">{year}</h1>
@@ -49,7 +44,7 @@ function App() {
         </div>
 
         {/* Calendar Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-2 px-1 sm:grid-cols-3 lg:grid-cols-4 gap-8">
           {months.map((monthName, monthIndex) => {
             const daysInMonth = getDaysInMonth(monthIndex, year);
             const firstDay = getFirstDayOfMonth(monthIndex, year);
@@ -63,7 +58,7 @@ function App() {
             return (
               <div
                 key={monthName}
-                className="bg-white border border-gray-300 rounded-md p-3 shadow-sm w-56"
+                className="bg-white hover:scale-105 w-60 h-60 transition-transform transform hover:border-4 hover:border-orange-600 rounded-md p-3 shadow-sm"
               >
                 <div className="text-center bg-green- font-bold mb-2">
                   {monthName}
@@ -81,14 +76,14 @@ function App() {
                 {/* Month Days */}
                 <div className="grid grid-cols-7 text-sm gap-1">
                   {daysArray.map((day, index) => (
-                    <div
+                    <button
                       key={index}
                       className={`h-6 flex items-center justify-center ${
-                        day ? "text-gray-800" : "text-transparent"
+                        day ? "text-gray-800 hover:border-white hover-border rounded-md hover:bg-cyan-400 hover:text-white" : "text-transparent"
                       }`}
                     >
                       {day || "-"}
-                    </div>
+                    </button>
                   ))}
                 </div>
               </div>
