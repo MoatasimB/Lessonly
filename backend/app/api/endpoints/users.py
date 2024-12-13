@@ -7,12 +7,12 @@ router = APIRouter()
 
 @router.post("/add")
 def create_user_endpoint(user: UserCreate, db: Session = Depends(get_db)):
-    response = {"code": 0, "message": "", "status": "fail", "user_id": None}
+    response = {"code": 0, "message": "Not all fields given", "status": "fail", "user_id": None}
     try:
         if user.name and user.email and user.password and user.username:
             user_exist, user_id = validate_user(db, user.email)
             if user_exist:
-                response["code"] = 1
+                response["code"] = 0
                 response["message"] = "User already exists"
                 response["status"] = "success"
                 response["user_id"] = user_id
@@ -42,9 +42,9 @@ def login_user_endpoint(user: LoginCheck, db: Session = Depends(get_db)):
                 response["status"] = "success"
                 response["user_id"] = user_id
             else:
-                response["code"] = 1
+                response["code"] = 0
                 response["message"] = "Wrong password or email"
-                response["status"] = "success"
+                response["status"] = "fail"
                 response["user_id"] = user_id
     except Exception as e:
         response["code"] = 0

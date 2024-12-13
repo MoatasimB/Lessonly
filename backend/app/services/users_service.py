@@ -24,6 +24,11 @@ def validate_user(db: Session, email: str):
         return True, user.id
     return False, None
 
+def validate_id(db: Session, id: int):
+    user = db.query(User).filter(User.id == id).first()
+    if user:
+        return True, user.id
+    return False, None
 def validate_login(db: Session, email, password: str):
     user = db.query(User).filter(User.email == email).first()
     if user:

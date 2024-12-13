@@ -1,9 +1,10 @@
 from pydantic import BaseModel
 
 class generateLesson(BaseModel):
-    month: str
-    day: str
-    year: str
+    month: int
+    day: int
+    year: int
     teachers_id : int
+    topic: str
+    grade: str
 
-    plan: str
