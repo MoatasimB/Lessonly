@@ -43,12 +43,16 @@ def create_plan(plan: generateLesson, db: Session = Depends(get_db)):
     return response
 
 @router.delete("/delete")
-def delete_plan(plan_id: int = Query(..., description="The ID of the plan to delete"), db: Session = Depends(get_db)):
+def delete_plan(teacher_id: int = Query(..., description="The ID of the plan to delete"),
+                month: int = Query(..., description="The month of the lesson plan"),
+    day: int = Query(..., description="The day of the lesson plan"),
+    year: int =Query(..., description="The year of the lesson plan"),
+    db: Session = Depends(get_db)):
     response = {"code": 0, "message": "not all fields given", "status": "fail"}
 
     try:
-        if plan_id:
-            delete_lesson_plan(db, plan_id)
+        if teacher_id and month and day and year:
+            delete_lesson_plan(db, teacher_id, month, day, year)
             response["code"] = 1
             response["message"] = "Deleted successfully"
             response["status"] = "success"

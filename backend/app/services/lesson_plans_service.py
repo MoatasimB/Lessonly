@@ -23,13 +23,17 @@ def get_lesson_plan_for_day(db: Session, teacher_id: int, month: int, day: int, 
         return {"error": "No lesson plan found for the specified day"}
     return lesson_plan
 
-def delete_lesson_plan(db: Session, plan_id: int):
+def delete_lesson_plan(db: Session, teachers_id: int, month: int, day: int, year: int):
     try:
-        plan = db.query(LessonPlan).filter(LessonPlan.id==plan_id).first()
+        plan = db.query(LessonPlan).filter(
+       LessonPlan.teacher_id==teachers_id,
+                LessonPlan.month==month,
+                LessonPlan.day==day,
+                LessonPlan.year==year ).first()
         if plan:
             db.delete(plan)
             db.commit()
-            return {"message": f"User with ID {plan_id} deleted successfully"}
+            return {"message": f"User with ID {teachers_id, month, day} deleted successfully"}
         else:
             return {"error": "User not found"}
     except Exception as e:
