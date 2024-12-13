@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
 from app.db.database import Base, engine
 
+# User Model
 class User(Base):
     __tablename__ = "users"
 
@@ -11,18 +12,23 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     name = Column(String, nullable=False)
 
+    # Relationship with LessonPlan
     lessonplans = relationship("LessonPlan", back_populates="teacher")
 
+# LessonPlan Model
 class LessonPlan(Base):
     __tablename__ = "lessonplans"
 
     id = Column(Integer, primary_key=True, index=True)
-    teacher_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    teacher_id = Column(Integer, ForeignKey("users.id"), nullable=False)  # Foreign Key to User
     month = Column(Integer, nullable=False)
     day = Column(Integer, nullable=False)
     year = Column(Integer, nullable=False)
     plan = Column(String, nullable=False)
+    topic = Column(String, nullable=False)
+    grade = Column(String, nullable=False)
 
+    # Relationship with User
     teacher = relationship("User", back_populates="lessonplans")
 
 # Initialize the database and create tables
