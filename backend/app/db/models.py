@@ -23,7 +23,7 @@ class LessonPlan(Base):
     year = Column(Integer, nullable=False)
     plan = Column(String, nullable=False)
 
-    teacher = relationship("User", back_populates="lessonplans")
+    teacher_id = relationship("users", back_populates="lessonplans")
 
 # Initialize the database and create tables
 def init_db():

@@ -1,10 +1,35 @@
 from typing import Union
 from fastapi import FastAPI, Depends
-from app.api.endpoints import users, lesson_plans
-from backend.app.api.endpoints import lesson_plans, users
-from backend.app.db.database import engine, Base
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from fastapi.encoders import jsonable_encoder
+from app.api.endpoints import lesson_plans, users
+from app.db.database import engine, Base
 
 app = FastAPI()
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc):
+    # Customize the error response
+    errors = []
+    for error in exc.errors():
+        loc = " -> ".join([str(loc) for loc in error["loc"]])
+        errors.append({
+            "location": loc,
+            "message": error["msg"],
+            "type": error["type"]
+        })
+
+    response = {
+        "code": 422,
+        "status": "fail",
+        "detail": errors
+    }
+    return JSONResponse(
+        status_code=422,
+        content=jsonable_encoder(response)
+    )
 
 Base.metadata.create_all(bind=engine)
 
