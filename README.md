@@ -19,7 +19,7 @@ Create and activate a virtual environment:
 
 4. Run the application
     ```bash
-    fastapi dev main.py
+    uvicorn main:app --reload
 
 To stop the server: Command + C  
 To deactivate the venv run:
