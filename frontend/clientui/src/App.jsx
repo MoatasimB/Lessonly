@@ -1,12 +1,13 @@
 import { useState } from "react";
 import "./App.css";
 import Nav from "./components/Nav";
+import Title from "./components/Title";
 
 function App() {
   const [count, setCount] = useState(0);
 
   // State for notes. Use an object keyed by `year-monthIndex-day`,
-  // each value is an array of note objects: { id: number, text: string }
+  // each value is an array of note objects: { id: number, title: string, text: string }
   const [notes, setNotes] = useState({});
 
   // Modal state
@@ -14,15 +15,29 @@ function App() {
   const [selectedDate, setSelectedDate] = useState(null); // { monthIndex, day, year }
 
   // Modal views: 'main', 'add', 'edit'
-  const [viewMode, setViewMode] = useState('main');
+  const [viewMode, setViewMode] = useState("main");
 
   // For adding/editing notes
   const [currentNoteIndex, setCurrentNoteIndex] = useState(null);
   const [noteText, setNoteText] = useState("");
+  const [titleText, setTitleText] = useState("");
+
+  // Add state to store the old title when editing
+  const [oldTitle, setOldTitle] = useState("");
 
   const months = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December",
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
   ];
 
   const year = 2024;
@@ -38,10 +53,9 @@ function App() {
   const handleDayClick = (monthIndex, day) => {
     if (!day) return;
     const dateKey = getDateKey(year, monthIndex, day);
-    const existingNotes = notes[dateKey] || [];
     setSelectedDate({ monthIndex, day, year });
     // Open modal in "main" view showing the list of notes
-    setViewMode('main');
+    setViewMode("main");
     setModalOpen(true);
   };
 
@@ -51,72 +65,154 @@ function App() {
 
   // Add note handlers
   const startAddNote = () => {
+    setTitleText("");
     setNoteText("");
-    setViewMode('add');
+    setViewMode("add");
   };
 
   const saveNewNote = () => {
     if (!selectedDate) return;
     const dateKey = getDateKey(selectedDate.year, selectedDate.monthIndex, selectedDate.day);
-    const newNote = { id: Date.now(), text: noteText };
+    const newNote = { id: Date.now(), title: titleText, text: noteText };
     setNotes((prev) => ({
       ...prev,
       [dateKey]: [...(prev[dateKey] || []), newNote],
     }));
-    setViewMode('main');
+    setViewMode("main");
+  
+    const dateKeyForBackend =
+      String(selectedDate.year) +
+      String(selectedDate.monthIndex + 1).padStart(2, "0") +
+      String(selectedDate.day).padStart(2, "0");
+  
+    const createObj = {
+      datekey: dateKeyForBackend,
+      teachers_id: 1,
+      topic: titleText,
+      grade: null,
+      plan: noteText,
+    };
+  
+    console.log("Create Object:", createObj);
+    // fetch("http://127.0.0.1:8000/lesson-plans/create", {
+    //   method: "POST",
+    //   headers: { "Content-Type": "application/json" },
+    //   body: JSON.stringify(createObj)
+    // })
+    // .then(res => res.json())
+    // .then(data => console.log("Create response:", data))
+    // .catch(err => console.error(err));
   };
 
   // Edit note handlers
   const startEditNote = (index) => {
-    // Load the selected note text into state
-    const dateKey = getDateKey(selectedDate.year, selectedDate.monthIndex, selectedDate.day);
+    const dateKey = getDateKey(
+      selectedDate.year,
+      selectedDate.monthIndex,
+      selectedDate.day
+    );
     const currentNotes = notes[dateKey] || [];
     const note = currentNotes[index];
+    setTitleText(note.title || "");
     setNoteText(note.text);
     setCurrentNoteIndex(index);
-    setViewMode('edit');
+    setOldTitle(note.title); // Store old title for update endpoint
+    setViewMode("edit");
   };
+  const clearNoteText = () => {
+    setNoteText(""); // Clears the text area by resetting the state
+  };
+  
 
   const saveEditedNote = () => {
-    if (currentNoteIndex === null) return;
+    if (currentNoteIndex === null || !selectedDate) return;
     const dateKey = getDateKey(selectedDate.year, selectedDate.monthIndex, selectedDate.day);
     setNotes((prev) => {
       const newNotes = [...(prev[dateKey] || [])];
-      newNotes[currentNoteIndex] = { ...newNotes[currentNoteIndex], text: noteText };
+      newNotes[currentNoteIndex] = {
+        ...newNotes[currentNoteIndex],
+        title: titleText,
+        text: noteText,
+      };
       return { ...prev, [dateKey]: newNotes };
     });
-    setViewMode('main');
+    setViewMode("main");
     setCurrentNoteIndex(null);
+  
+    const dateKeyForBackend =
+      String(selectedDate.year) +
+      String(selectedDate.monthIndex + 1).padStart(2, "0") +
+      String(selectedDate.day).padStart(2, "0");
+  
+    const updateObj = {
+      teacher_id: 1,
+      datekey: dateKeyForBackend,
+      prev_topic: oldTitle,
+      new_topic: titleText,
+      new_plan: noteText,
+    };
+  
+    console.log("Update Object:", updateObj);
+    // fetch("http://127.0.0.1:8000/lesson-plans/update", {
+    //   method: "POST",
+    //   headers: { "Content-Type": "application/json" },
+    //   body: JSON.stringify(updateObj)
+    // })
+    // .then(res => res.json())
+    // .then(data => console.log("Update response:", data))
+    // .catch(err => console.error(err));
   };
 
-  const clearNoteText = () => {
-    setNoteText("");
-  };
 
   const deleteNote = (index) => {
+    if (!selectedDate) return;
     const dateKey = getDateKey(selectedDate.year, selectedDate.monthIndex, selectedDate.day);
+    const currentNotes = notes[dateKey] || [];
+    const noteToDelete = currentNotes[index];
+  
     setNotes((prev) => {
       const newNotes = [...(prev[dateKey] || [])];
       newNotes.splice(index, 1);
       return { ...prev, [dateKey]: newNotes };
     });
-    // If we're in edit mode and deleting the currently edited note, go back to main view
-    if (viewMode === 'edit' && currentNoteIndex === index) {
-      setViewMode('main');
-      setCurrentNoteIndex(null);
-    }
+  
+    const dateKeyForBackend =
+      String(selectedDate.year) +
+      String(selectedDate.monthIndex + 1).padStart(2, "0") +
+      String(selectedDate.day).padStart(2, "0");
+  
+    const deleteObj = {
+      teacher_id: 1,
+      datekey: dateKeyForBackend,
+      topic: noteToDelete.title,
+    };
+  
+    console.log("Delete Object:", deleteObj);
+    // fetch("http://127.0.0.1:8000/lesson-plans/update", {
+    //   method: "POST",
+    //   headers: { "Content-Type": "application/json" },
+    //   body: JSON.stringify(deleteObj)
+    // })
+    // .then(res => res.json())
+    // .then(data => console.log("Delete response:", data))
+    // .catch(err => console.error(err));
   };
+  
+  
 
   const closeModal = () => {
     setModalOpen(false);
     setSelectedDate(null);
-    setViewMode('main');
+    setViewMode("main");
     setCurrentNoteIndex(null);
     setNoteText("");
+    setTitleText("");
   };
 
   const currentNotes = selectedDate
-    ? notes[getDateKey(selectedDate.year, selectedDate.monthIndex, selectedDate.day)] || []
+    ? notes[
+        getDateKey(selectedDate.year, selectedDate.monthIndex, selectedDate.day)
+      ] || []
     : [];
 
   return (
@@ -183,12 +279,13 @@ function App() {
             className="absolute inset-0 bg-black opacity-50"
             onClick={closeModal}
           ></div>
-          <div className="bg-white border-4 rounded-lg py-6 text-center shadow-lg z-10 md:w-1/3 h-2/3 md:h-3/4 flex flex-col">
-            <h2 className="text-xl text-orange-600 font-semibold mb-4">
-              Notes for {months[selectedDate.monthIndex]} {selectedDate.day}, {selectedDate.year}
+          <div className="bg-white border-4 rounded-lg pt-6 pb-4 text-center shadow-lg z-10 md:w-1/3 h-2/3 md:h-3/4 flex flex-col">
+            <h2 className="text-xl text-orange-600 font-semibold mb-2">
+              Notes for {months[selectedDate.monthIndex]} {selectedDate.day},{" "}
+              {selectedDate.year}
             </h2>
 
-            {viewMode === 'main' && (
+            {viewMode === "main" && (
               <>
                 <div className="flex-grow overflow-auto">
                   {currentNotes.length === 0 ? (
@@ -198,12 +295,15 @@ function App() {
                   ) : (
                     <div className="flex flex-col space-y-2 h-full p-3 mb-4">
                       {currentNotes.map((n, i) => (
-                        <div key={n.id} className="border-black border transition-transform hover:scale-105 p-2 rounded-lg flex justify-between items-center">
+                        <div
+                          key={n.id}
+                          className="border-black border transition-transform hover:scale-105 p-2 rounded-lg flex justify-between items-center"
+                        >
                           <div
                             className="overflow-hidden overflow-ellipsis whitespace-nowrap pr-2 cursor-pointer text-left flex-grow"
                             onClick={() => startEditNote(i)}
                           >
-                            {n.text || "<empty note>"}
+                            {n.title || "<no title>"}
                           </div>
                           <button
                             className="bg-red-400 text-white px-4 py-2 rounded-full hover:scale-125 transition-transform hover:bg-red-600 flex-shrink-0"
@@ -224,7 +324,7 @@ function App() {
                     Close
                   </button>
                   <button
-                    className="bg-cyan-400 font-semibold text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+                    className="bg-cyan-400 font-semibold w-32 hover:scale-105 transition-transform text-white px-4 py-2 rounded-xl hover:bg-orange-300"
                     onClick={startAddNote}
                   >
                     Add Note
@@ -233,25 +333,26 @@ function App() {
               </>
             )}
 
-            {viewMode === 'add' && (
+            {viewMode === "add" && (
               <>
-                <div className="flex-grow overflow-auto">
+                <div className="flex-grow px-2 overflow-auto">
+                  <Title titleText={titleText} setTitleText={setTitleText} />
                   <textarea
-                    className="w-full h-full border-4 border-orange-200 rounded-lg p-2"
+                    className="w-full h-5/6 border-4 border-orange-200 rounded-lg p-2"
                     value={noteText}
                     onChange={(e) => setNoteText(e.target.value)}
-                    placeholder="Enter your new note..."
+                    placeholder="Add notes to your lesson plan..."
                   />
                 </div>
-                <div className="flex justify-between space-x-2">
+                <div className="flex justify-between px-2 space-x-2">
                   <button
-                    className="border transition-transform hover:scale-105 border-gray-300 mt-4 px-4 py-2 rounded-lg hover:bg-gray-100"
-                    onClick={() => setViewMode('main')}
+                    className="border transition-transform hover:scale-105 border-gray-300 mt-4 px-4 py-2 rounded-xl hover:bg-gray-100"
+                    onClick={() => setViewMode("main")}
                   >
                     Cancel
                   </button>
                   <button
-                    className="bg-cyan-400 mt-4 font-bold transition-transform hover:scale-105 hover:border-4 hover:border-green-300 text-white px-10 py-1 rounded-lg hover:bg-green-600"
+                    className="bg-cyan-400 mt-4 font-bold transition-transform rounded-xl hover:scale-105 hover:border-4 hover:border-green-300 text-white px-10 py-1 rounded-lg hover:bg-green-600"
                     onClick={saveNewNote}
                   >
                     Save
@@ -260,11 +361,12 @@ function App() {
               </>
             )}
 
-            {viewMode === 'edit' && (
+            {viewMode === "edit" && (
               <>
-                <div className="flex-grow p-2 overflow-auto">
+                <div className="flex-grow px-2 overflow-auto">
+                  <Title titleText={titleText} setTitleText={setTitleText} />
                   <textarea
-                    className="w-full h-5/6 border-4 border-orange-200 rounded-lg p-2 mb-2"
+                    className="w-full h-4/5 border-4 border-orange-200 rounded-lg p-2"
                     value={noteText}
                     onChange={(e) => setNoteText(e.target.value)}
                   />
@@ -277,10 +379,13 @@ function App() {
                     </button>
                   </div>
                 </div>
-                <div className="flex px-2 justify-between space-x-2">
+                <div className="flex mt-3 px-2 justify-between space-x-2">
                   <button
                     className="bg-gray-700 rounded-lg w-32 text-white transition-transform hover:scale-105 px-8 font-semibold py-2 hover:bg-black"
-                    onClick={() => { setViewMode('main'); setCurrentNoteIndex(null); }}
+                    onClick={() => {
+                      setViewMode("main");
+                      setCurrentNoteIndex(null);
+                    }}
                   >
                     Cancel
                   </button>
@@ -288,7 +393,7 @@ function App() {
                     className="bg-cyan-400 rounded-lg transition-transform hover:bg-green-600 hover:scale-105 text-white px-8 font-semibold py-2"
                     onClick={saveEditedNote}
                   >
-                    Save Changes
+                    Update
                   </button>
                 </div>
               </>
