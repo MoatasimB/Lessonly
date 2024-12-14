@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, String, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
 from app.db.database import Base, engine
 
@@ -21,15 +21,14 @@ class LessonPlan(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     teacher_id = Column(Integer, ForeignKey("users.id"), nullable=False)  # Foreign Key to User
-    month = Column(Integer, nullable=False)
-    day = Column(Integer, nullable=False)
-    year = Column(Integer, nullable=False)
+    datekey = Column(String, nullable=False)
     plan = Column(String, nullable=False)
     topic = Column(String, nullable=False)
-    grade = Column(String, nullable=False)
-
+    grade = Column(String, nullable=True)
     # Relationship with User
     teacher = relationship("User", back_populates="lessonplans")
+
+    __table_args__ = (UniqueConstraint("teacher_id", "topic", "datekey", name="uix_teacher_topic_date"),)
 
 # Initialize the database and create tables
 def init_db():
