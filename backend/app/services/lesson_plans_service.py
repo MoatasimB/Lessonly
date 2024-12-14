@@ -72,7 +72,7 @@ def update_lesson_plan(db: Session, teacher_id: int, old_topic: str, new_topic:s
         ).first()
 
         if not lesson_plan:
-            return {"error": "Lesson plan not found"}
+            return False, {"error": "Lesson plan not found"}
 
         # Update fields if new values are provided
         if new_topic is not None:

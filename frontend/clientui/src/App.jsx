@@ -72,19 +72,23 @@ function App() {
 
   const saveNewNote = () => {
     if (!selectedDate) return;
-    const dateKey = getDateKey(selectedDate.year, selectedDate.monthIndex, selectedDate.day);
+    const dateKey = getDateKey(
+      selectedDate.year,
+      selectedDate.monthIndex,
+      selectedDate.day
+    );
     const newNote = { id: Date.now(), title: titleText, text: noteText };
     setNotes((prev) => ({
       ...prev,
       [dateKey]: [...(prev[dateKey] || []), newNote],
     }));
     setViewMode("main");
-  
+
     const dateKeyForBackend =
       String(selectedDate.year) +
       String(selectedDate.monthIndex + 1).padStart(2, "0") +
       String(selectedDate.day).padStart(2, "0");
-  
+
     const createObj = {
       datekey: dateKeyForBackend,
       teachers_id: 1,
@@ -92,16 +96,16 @@ function App() {
       grade: null,
       plan: noteText,
     };
-  
-    console.log("Create Object:", createObj);
-    // fetch("http://127.0.0.1:8000/lesson-plans/create", {
-    //   method: "POST",
-    //   headers: { "Content-Type": "application/json" },
-    //   body: JSON.stringify(createObj)
-    // })
-    // .then(res => res.json())
-    // .then(data => console.log("Create response:", data))
-    // .catch(err => console.error(err));
+
+    // console.log("Create Object:", createObj);
+    fetch("http://127.0.0.1:8000/lesson-plans/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(createObj),
+    })
+      .then((res) => res.json())
+      .then((data) => console.log("Create response:", data))
+      .catch((err) => console.error(err));
   };
 
   // Edit note handlers
@@ -122,11 +126,14 @@ function App() {
   const clearNoteText = () => {
     setNoteText(""); // Clears the text area by resetting the state
   };
-  
 
   const saveEditedNote = () => {
     if (currentNoteIndex === null || !selectedDate) return;
-    const dateKey = getDateKey(selectedDate.year, selectedDate.monthIndex, selectedDate.day);
+    const dateKey = getDateKey(
+      selectedDate.year,
+      selectedDate.monthIndex,
+      selectedDate.day
+    );
     setNotes((prev) => {
       const newNotes = [...(prev[dateKey] || [])];
       newNotes[currentNoteIndex] = {
@@ -138,67 +145,68 @@ function App() {
     });
     setViewMode("main");
     setCurrentNoteIndex(null);
-  
+
     const dateKeyForBackend =
       String(selectedDate.year) +
       String(selectedDate.monthIndex + 1).padStart(2, "0") +
       String(selectedDate.day).padStart(2, "0");
-  
+
     const updateObj = {
       teacher_id: 1,
       datekey: dateKeyForBackend,
-      prev_topic: oldTitle,
+      old_topic: oldTitle,
       new_topic: titleText,
       new_plan: noteText,
     };
-  
-    console.log("Update Object:", updateObj);
-    // fetch("http://127.0.0.1:8000/lesson-plans/update", {
-    //   method: "POST",
-    //   headers: { "Content-Type": "application/json" },
-    //   body: JSON.stringify(updateObj)
-    // })
-    // .then(res => res.json())
-    // .then(data => console.log("Update response:", data))
-    // .catch(err => console.error(err));
-  };
 
+    console.log("Update Object:", updateObj);
+    fetch("http://127.0.0.1:8000/lesson-plans/update", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updateObj),
+    })
+      .then((res) => res.json())
+      .then((data) => console.log("Update response:", data))
+      .catch((err) => console.error(err));
+  };
 
   const deleteNote = (index) => {
     if (!selectedDate) return;
-    const dateKey = getDateKey(selectedDate.year, selectedDate.monthIndex, selectedDate.day);
+    const dateKey = getDateKey(
+      selectedDate.year,
+      selectedDate.monthIndex,
+      selectedDate.day
+    );
     const currentNotes = notes[dateKey] || [];
     const noteToDelete = currentNotes[index];
-  
+
     setNotes((prev) => {
       const newNotes = [...(prev[dateKey] || [])];
       newNotes.splice(index, 1);
       return { ...prev, [dateKey]: newNotes };
     });
-  
+
     const dateKeyForBackend =
       String(selectedDate.year) +
       String(selectedDate.monthIndex + 1).padStart(2, "0") +
       String(selectedDate.day).padStart(2, "0");
-  
+
     const deleteObj = {
       teacher_id: 1,
       datekey: dateKeyForBackend,
       topic: noteToDelete.title,
     };
-  
+
     console.log("Delete Object:", deleteObj);
-    // fetch("http://127.0.0.1:8000/lesson-plans/update", {
-    //   method: "POST",
-    //   headers: { "Content-Type": "application/json" },
-    //   body: JSON.stringify(deleteObj)
-    // })
-    // .then(res => res.json())
-    // .then(data => console.log("Delete response:", data))
-    // .catch(err => console.error(err));
+    const queryParams = new URLSearchParams(deleteObj).toString();
+
+    fetch(`http://127.0.0.1:8000/lesson-plans/delete?${queryParams}`, {
+      method: "DELETE",
+    })
+      .then((res) => res.json())
+      .then((data) => console.log("Delete response:", data))
+      .catch((err) => console.error(err));
   };
-  
-  
 
   const closeModal = () => {
     setModalOpen(false);
@@ -218,11 +226,8 @@ function App() {
   return (
     <>
       <Nav />
-      <div className="flex flex-col items-center justify-center bg-orange-100">
-        <div className="mb-8 text-center">
-          <h1 className="text-2xl font-bold">{year}</h1>
-        </div>
-
+      <div className="flex border-4 flex-col min-h-screen items-center justify-center gap-10 bg-orange-100">
+        <h1 className="text-2xl font-bold">{year}</h1>
         {/* Calendar Grid */}
         <div className="grid grid-cols-2 px-1 mb-8 sm:grid-cols-3 lg:grid-cols-4 gap-8">
           {months.map((monthName, monthIndex) => {

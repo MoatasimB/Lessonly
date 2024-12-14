@@ -124,7 +124,7 @@ def lesson_plan_update(updatedPlan: UpdateLessonPlan, db: Session = Depends(get_
             else:
                 response["code"] = 0
                 response["message"] = f"failed to update lesson plan for teacher id: {updatedPlan.teacher_id}"
-                response["status"] = f"ed to update: error: {error}success"
+                response["status"] = f"failed to update: error: {error}"
         else:
             response["code"] = 0
             response["message"] = f"missing teacher_id or datakey"
