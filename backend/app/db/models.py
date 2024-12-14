@@ -28,7 +28,7 @@ class LessonPlan(Base):
     # Relationship with User
     teacher = relationship("User", back_populates="lessonplans")
 
-    __table_args__ = (UniqueConstraint("teacher_id", "topic", name="uix_teacher_topic"),)
+    __table_args__ = (UniqueConstraint("teacher_id", "topic", "datekey", name="uix_teacher_topic_date"),)
 
 # Initialize the database and create tables
 def init_db():

@@ -11,3 +11,10 @@ class GenerateLesson(BaseModel):
 class GenerateAILesson(BaseModel):
     query: str
     grade: str
+
+class UpdateLessonPlan(BaseModel):
+    datekey: str
+    teacher_id: int
+    new_topic: str
+    old_topic: str
+    new_plan: str

@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from app.db.database import get_db
-from app.services.lesson_plans_service import create_lesson_plan, delete_lesson_plan, get_lesson_plans_for_day
-from app.schemas.lesson_plan_schema import GenerateLesson, GenerateAILesson
+from app.services.lesson_plans_service import create_lesson_plan, delete_lesson_plan, get_lesson_plans_for_day, update_lesson_plan
+from app.schemas.lesson_plan_schema import GenerateLesson, GenerateAILesson, UpdateLessonPlan
 from app.services.chatgpt_service import generate_lesson_plan
 from app.services.users_service import validate_id
 import json
@@ -36,14 +36,15 @@ def create_plan(plan: GenerateLesson, db: Session = Depends(get_db)):
     return response
 
 @router.delete("/delete")
-def delete_plan(teacher_id: int = Query(..., description="The ID of the plan to delete"),
+def delete_plan(teacher_id: int = Query(..., description="The ID of the teacher"),
                 datekey: str = Query(..., description="The date key of the lesson plan to delete"),
+                topic: str = Query(..., description="The topic of the lesson plan to delete"),
     db: Session = Depends(get_db)):
     response = {"code": 0, "message": "", "status": "fail"}
 
     try:
-        if teacher_id and datekey:
-            delete_lesson_plan(db, teacher_id, datekey)
+        if teacher_id and datekey and topic:
+            delete_lesson_plan(db, teacher_id, datekey, topic)
             response["code"] = 1
             response["message"] = "Deleted successfully"
             response["status"] = "success"
@@ -106,3 +107,31 @@ def get_lesson_plans_by_day(teacher_id: int = Query(..., description="The ID of 
 
     return response
 
+@router.post("/update")
+def lesson_plan_update(updatedPlan: UpdateLessonPlan, db: Session = Depends(get_db)):
+    response = {"code": 0, "message": "not all fields given", "status": "fail"}
+    try:
+        if updatedPlan.teacher_id and updatedPlan.datekey and updatedPlan.old_topic:
+            didUpdate, error = update_lesson_plan(teacher_id=updatedPlan.teacher_id,
+                                              datekey=updatedPlan.datekey,
+                                              old_topic=updatedPlan.old_topic,
+                                              new_topic=updatedPlan.new_topic,
+                                              new_plan=updatedPlan.new_plan, db=db)
+            if didUpdate:
+                response["code"] = 1
+                response["message"] = f"successfully updated lesson plan for teacher id: {updatedPlan.teacher_id}"
+                response["status"] = "success"
+            else:
+                response["code"] = 0
+                response["message"] = f"failed to update lesson plan for teacher id: {updatedPlan.teacher_id}"
+                response["status"] = f"ed to update: error: {error}success"
+        else:
+            response["code"] = 0
+            response["message"] = f"missing teacher_id or datakey"
+            response["status"] = "fail"
+    except Exception as e:
+        response["code"] = 0
+        response["message"] = f"failed to update lesson plan, error: {e}"
+        response["status"] = "fail"
+
+    return response
