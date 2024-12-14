@@ -6,38 +6,33 @@ import Title from "./components/Title";
 function App() {
   const [count, setCount] = useState(0);
 
-  // State for notes. Use an object keyed by `year-monthIndex-day`,
-  // each value is an array of note objects: { id: number, title: string, text: string }
   const [notes, setNotes] = useState({});
-
-  // Modal state
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null); // { monthIndex, day, year }
 
-  // Modal views: 'main', 'add', 'edit'
   const [viewMode, setViewMode] = useState("main");
 
-  // For adding/editing notes
   const [currentNoteIndex, setCurrentNoteIndex] = useState(null);
   const [noteText, setNoteText] = useState("");
   const [titleText, setTitleText] = useState("");
-
-  // Add state to store the old title when editing
   const [oldTitle, setOldTitle] = useState("");
 
+  const [teacherId, setTeacherId] = useState(null);
+
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
+  const [signupModalOpen, setSignupModalOpen] = useState(false);
+
+  const [signupName, setSignupName] = useState("");
+  const [signupEmail, setSignupEmail] = useState("");
+  const [signupPassword, setSignupPassword] = useState("");
+  const [signupUsername, setSignupUsername] = useState("");
+
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+
   const months = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
   ];
 
   const year = 2024;
@@ -50,20 +45,57 @@ function App() {
     return new Date(year, month, 1).getDay();
   };
 
-  const handleDayClick = (monthIndex, day) => {
-    if (!day) return;
-    const dateKey = getDateKey(year, monthIndex, day);
-    setSelectedDate({ monthIndex, day, year });
-    // Open modal in "main" view showing the list of notes
-    setViewMode("main");
-    setModalOpen(true);
-  };
-
   const getDateKey = (year, monthIndex, day) => {
     return `${year}-${monthIndex}-${day}`;
   };
 
-  // Add note handlers
+  const handleDayClick = (monthIndex, day) => {
+    if (!day) return;
+    const date = { monthIndex, day, year };
+    setSelectedDate(date);
+    setViewMode("main");
+    setModalOpen(true);
+
+    if (teacherId) {
+      const dateKeyForBackend =
+        String(date.year) +
+        String(date.monthIndex + 1).padStart(2, "0") +
+        String(date.day).padStart(2, "0");
+
+      const queryParams = new URLSearchParams({
+        teacher_id: teacherId,
+        datekey: dateKeyForBackend,
+      }).toString();
+
+      fetch(`http://127.0.0.1:8000/lesson-plans/get?${queryParams}`, {
+        method: "GET",
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          console.log("Get lesson plans response:", data);
+          if (data.code === 1 && data.status === "success" && data.lesson_plans) {
+            const fetchedNotes = data.lesson_plans.map((lp) => ({
+              id: Date.now() + Math.random(),
+              title: lp.topic || "<no title>",
+              text: lp.plan || "",
+            }));
+            const dateKey = getDateKey(date.year, date.monthIndex, date.day);
+            setNotes((prev) => ({
+              ...prev,
+              [dateKey]: fetchedNotes,
+            }));
+          } else {
+            const dateKey = getDateKey(date.year, date.monthIndex, date.day);
+            setNotes((prev) => ({
+              ...prev,
+              [dateKey]: [],
+            }));
+          }
+        })
+        .catch((err) => console.error(err));
+    }
+  };
+
   const startAddNote = () => {
     setTitleText("");
     setNoteText("");
@@ -84,32 +116,33 @@ function App() {
     }));
     setViewMode("main");
 
-    const dateKeyForBackend =
-      String(selectedDate.year) +
-      String(selectedDate.monthIndex + 1).padStart(2, "0") +
-      String(selectedDate.day).padStart(2, "0");
+    if (teacherId) {
+      const dateKeyForBackend =
+        String(selectedDate.year) +
+        String(selectedDate.monthIndex + 1).padStart(2, "0") +
+        String(selectedDate.day).padStart(2, "0");
 
-    const createObj = {
-      datekey: dateKeyForBackend,
-      teachers_id: 1,
-      topic: titleText,
-      grade: null,
-      plan: noteText,
-    };
+      const createObj = {
+        datekey: dateKeyForBackend,
+        teachers_id: teacherId,
+        topic: titleText,
+        grade: null,
+        plan: noteText,
+      };
 
-    // console.log("Create Object:", createObj);
-    fetch("http://127.0.0.1:8000/lesson-plans/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(createObj),
-    })
-      .then((res) => res.json())
-      .then((data) => console.log("Create response:", data))
-      .catch((err) => console.error(err));
+      fetch("http://127.0.0.1:8000/lesson-plans/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(createObj),
+      })
+        .then((res) => res.json())
+        .then((data) => console.log("Create response:", data))
+        .catch((err) => console.error(err));
+    }
   };
 
-  // Edit note handlers
   const startEditNote = (index) => {
+    if (!selectedDate) return;
     const dateKey = getDateKey(
       selectedDate.year,
       selectedDate.monthIndex,
@@ -120,11 +153,12 @@ function App() {
     setTitleText(note.title || "");
     setNoteText(note.text);
     setCurrentNoteIndex(index);
-    setOldTitle(note.title); // Store old title for update endpoint
+    setOldTitle(note.title);
     setViewMode("edit");
   };
+
   const clearNoteText = () => {
-    setNoteText(""); // Clears the text area by resetting the state
+    setNoteText("");
   };
 
   const saveEditedNote = () => {
@@ -146,28 +180,30 @@ function App() {
     setViewMode("main");
     setCurrentNoteIndex(null);
 
-    const dateKeyForBackend =
-      String(selectedDate.year) +
-      String(selectedDate.monthIndex + 1).padStart(2, "0") +
-      String(selectedDate.day).padStart(2, "0");
+    if (teacherId) {
+      const dateKeyForBackend =
+        String(selectedDate.year) +
+        String(selectedDate.monthIndex + 1).padStart(2, "0") +
+        String(selectedDate.day).padStart(2, "0");
 
-    const updateObj = {
-      teacher_id: 1,
-      datekey: dateKeyForBackend,
-      old_topic: oldTitle,
-      new_topic: titleText,
-      new_plan: noteText,
-    };
+      const updateObj = {
+        teacher_id: teacherId,
+        datekey: dateKeyForBackend,
+        old_topic: oldTitle,
+        new_topic: titleText,
+        new_plan: noteText,
+      };
 
-    console.log("Update Object:", updateObj);
-    fetch("http://127.0.0.1:8000/lesson-plans/update", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(updateObj),
-    })
-      .then((res) => res.json())
-      .then((data) => console.log("Update response:", data))
-      .catch((err) => console.error(err));
+      console.log("Update Object:", updateObj);
+      fetch("http://127.0.0.1:8000/lesson-plans/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updateObj),
+      })
+        .then((res) => res.json())
+        .then((data) => console.log("Update response:", data))
+        .catch((err) => console.error(err));
+    }
   };
 
   const deleteNote = (index) => {
@@ -186,26 +222,28 @@ function App() {
       return { ...prev, [dateKey]: newNotes };
     });
 
-    const dateKeyForBackend =
-      String(selectedDate.year) +
-      String(selectedDate.monthIndex + 1).padStart(2, "0") +
-      String(selectedDate.day).padStart(2, "0");
+    if (teacherId) {
+      const dateKeyForBackend =
+        String(selectedDate.year) +
+        String(selectedDate.monthIndex + 1).padStart(2, "0") +
+        String(selectedDate.day).padStart(2, "0");
 
-    const deleteObj = {
-      teacher_id: 1,
-      datekey: dateKeyForBackend,
-      topic: noteToDelete.title,
-    };
+      const deleteObj = {
+        teacher_id: teacherId,
+        datekey: dateKeyForBackend,
+        topic: noteToDelete.title,
+      };
 
-    console.log("Delete Object:", deleteObj);
-    const queryParams = new URLSearchParams(deleteObj).toString();
+      console.log("Delete Object:", deleteObj);
+      const queryParams = new URLSearchParams(deleteObj).toString();
 
-    fetch(`http://127.0.0.1:8000/lesson-plans/delete?${queryParams}`, {
-      method: "DELETE",
-    })
-      .then((res) => res.json())
-      .then((data) => console.log("Delete response:", data))
-      .catch((err) => console.error(err));
+      fetch(`http://127.0.0.1:8000/lesson-plans/delete?${queryParams}`, {
+        method: "DELETE",
+      })
+        .then((res) => res.json())
+        .then((data) => console.log("Delete response:", data))
+        .catch((err) => console.error(err));
+    }
   };
 
   const closeModal = () => {
@@ -217,6 +255,58 @@ function App() {
     setTitleText("");
   };
 
+  const handleLogin = () => {
+    const loginObj = {
+      email: loginEmail,
+      password: loginPassword,
+    };
+    console.log("Login Object:", loginObj);
+    fetch("http://127.0.0.1:8000/users/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(loginObj),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("Login response:", data);
+        if (data.code === 1 && data.status === "success" && data.user_id) {
+          setTeacherId(data.user_id);
+        }
+        setLoginModalOpen(false);
+      })
+      .catch((err) => console.error(err));
+  };
+
+  const handleSignup = () => {
+    const signupObj = {
+      name: signupName,
+      email: signupEmail,
+      password: signupPassword,
+      username: signupUsername,
+    };
+    console.log("Signup Object:", signupObj);
+    fetch("http://127.0.0.1:8000/users/add", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(signupObj),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("Signup response:", data);
+        if (data.code === 1 && data.status === "success" && data.user_id) {
+          setTeacherId(data.user_id);
+        }
+        setSignupModalOpen(false);
+      })
+      .catch((err) => console.error(err));
+  };
+
+  const handleLogout = () => {
+    // Clear teacherId and notes on logout
+    setTeacherId(null);
+    setNotes({});
+  };
+
   const currentNotes = selectedDate
     ? notes[
         getDateKey(selectedDate.year, selectedDate.monthIndex, selectedDate.day)
@@ -225,7 +315,12 @@ function App() {
 
   return (
     <>
-      <Nav />
+      <Nav
+        onLoginClick={() => setLoginModalOpen(true)}
+        onSignupClick={() => setSignupModalOpen(true)}
+        teacherId={teacherId}
+        onLogoutClick={handleLogout}
+      />
       <div className="flex border-4 flex-col min-h-screen items-center justify-center gap-10 bg-orange-100">
         <h1 className="text-2xl font-bold">{year}</h1>
         {/* Calendar Grid */}
@@ -276,10 +371,9 @@ function App() {
         </div>
       </div>
 
-      {/* Modal */}
+      {/* Notes Modal */}
       {modalOpen && selectedDate && (
         <div className="fixed inset-0 flex items-center justify-center z-50">
-          {/* Overlay */}
           <div
             className="absolute inset-0 bg-black opacity-50"
             onClick={closeModal}
@@ -375,7 +469,7 @@ function App() {
                     value={noteText}
                     onChange={(e) => setNoteText(e.target.value)}
                   />
-                  <div className="flex  justify-start items-center">
+                  <div className="flex justify-start items-center">
                     <button
                       className="bg-yellow-600 text-white transition-transform w-32 hover:scale-105 font-semibold rounded-lg py-2 hover:bg-yellow-600"
                       onClick={clearNoteText}
@@ -403,6 +497,106 @@ function App() {
                 </div>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {loginModalOpen && (
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          <div
+            className="absolute inset-0 bg-black opacity-50"
+            onClick={() => setLoginModalOpen(false)}
+          ></div>
+          <div className="bg-white border-4 rounded-lg pt-6 pb-4 px-4 text-center shadow-lg z-10 md:w-1/3 flex flex-col">
+            <h2 className="text-xl text-orange-600 font-semibold mb-4">Login</h2>
+            <div className="overflow-auto flex flex-col items-center px-2">
+              <input
+                className="border-2 border-orange-300 rounded-lg mb-2 p-2 w-full"
+                type="email"
+                placeholder="Email"
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
+              />
+              <input
+                className="border-2 border-orange-300 rounded-lg mb-2 p-2 w-full"
+                type="password"
+                placeholder="Password"
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
+              />
+            </div>
+            <div className="flex justify-between px-2 space-x-2">
+              <button
+                className="border transition-transform hover:scale-105 border-gray-300 mt-4 px-4 py-2 rounded-xl hover:bg-gray-100"
+                onClick={() => setLoginModalOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="bg-cyan-400 mt-4 font-bold transition-transform rounded-xl hover:scale-105 hover:border-4 hover:border-green-300 text-white px-10 py-1 rounded-lg hover:bg-green-600"
+                onClick={handleLogin}
+              >
+                Login
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {signupModalOpen && (
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          <div
+            className="absolute inset-0 bg-black opacity-50"
+            onClick={() => setSignupModalOpen(false)}
+          ></div>
+          <div className="bg-white border-4 border-black rounded-xl px-4 pt-6 pb-4 text-center shadow-lg z-10 md:w-1/3 flex flex-col">
+            <h2 className="text-xl text-orange-600 hover:underline decoration-2 decoration-cyan-400 font-semibold mb-4">
+              Signup
+            </h2>
+            <div className="flex-grow overflow-auto flex flex-col items-center px-2">
+              <input
+                className="border-2 border-orange-300 rounded-lg mb-2 p-2 w-full"
+                type="text"
+                placeholder="Enter name..."
+                value={signupName}
+                onChange={(e) => setSignupName(e.target.value)}
+              />
+              <input
+                className="border-2 border-orange-300 rounded-lg mb-2 p-2 w-full"
+                type="text"
+                placeholder="Create a username..."
+                value={signupUsername}
+                onChange={(e) => setSignupUsername(e.target.value)}
+              />
+              <input
+                className="border-2 border-orange-300 rounded-lg mb-2 p-2 w-full"
+                type="email"
+                placeholder="Email"
+                value={signupEmail}
+                onChange={(e) => setSignupEmail(e.target.value)}
+              />
+              <input
+                className="border-2 border-orange-300 rounded-lg mb-2 p-2 w-full"
+                type="password"
+                placeholder="Password"
+                value={signupPassword}
+                onChange={(e) => setSignupPassword(e.target.value)}
+              />
+            </div>
+            <div className="flex justify-between px-2 space-x-2">
+              <button
+                className="border transition-transform hover:scale-105 border-gray-300 mt-4 px-4 py-2 rounded-xl hover:bg-gray-100"
+                onClick={() => setSignupModalOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="bg-cyan-400 mt-4 font-bold transition-transform rounded-xl hover:scale-105 hover:border-4 hover:border-green-300 text-white px-10 py-1 rounded-lg hover:bg-green-600"
+                onClick={handleSignup}
+              >
+                Signup
+              </button>
+            </div>
           </div>
         </div>
       )}
