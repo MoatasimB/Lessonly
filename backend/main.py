@@ -5,8 +5,18 @@ from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
 from app.api.endpoints import lesson_plans, users
 from app.db.database import engine, Base
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
+
+# Add CORS Middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],  # Vite frontend
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.exception_handler(RequestValidationError)
