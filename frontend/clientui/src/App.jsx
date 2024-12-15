@@ -9,7 +9,6 @@ function App() {
   const [notes, setNotes] = useState({});
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null); // { monthIndex, day, year }
-
   const [viewMode, setViewMode] = useState("main");
 
   const [currentNoteIndex, setCurrentNoteIndex] = useState(null);
@@ -30,9 +29,149 @@ function App() {
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
 
+  // State for AI panel
+  const [showAIPanel, setShowAIPanel] = useState(false);
+  const [aiQuery, setAIQuery] = useState("");
+  const [aiGrade, setAIGrade] = useState("");
+
+  const [aiLessonPlan, setAiLessonPlan] = useState(null);
+  const formatLessonPlan = (plan) => {
+    const {
+      grade_level,
+      subject,
+      topic,
+      lesson_objective,
+      materials,
+      lesson_duration,
+      lesson_steps,
+      assessment,
+    } = plan;
+
+    const materialsList =
+      Array.isArray(materials) && materials.length > 0
+        ? materials.map((m) => `- ${m}`).join("\n")
+        : "None";
+
+    const durationText = `\n\nDuration: ${lesson_duration || "N/A"}\n\n`;
+
+    // A helper function to format a known step. This step could be:
+    // 1) A string: print a single bullet
+    // 2) An array of strings: print each as a bullet
+    // 3) An object with 'description' and 'activities':
+    //    - Print description on one line
+    //    - Print activities as bullets
+    const formatKnownStep = (value, displayName) => {
+      if (value === undefined) return "";
+      let result = `${displayName}:\n`;
+
+      if (typeof value === "string") {
+        // Single string
+        result += `- ${value}\n\n`;
+        return result;
+      }
+
+      if (Array.isArray(value)) {
+        // Array of strings
+        value.forEach((item) => {
+          result += `- ${item}\n`;
+        });
+        result += `\n`;
+        return result;
+      }
+
+      if (typeof value === "object" && value !== null) {
+        // Object with potential 'description' and 'activities'
+        if (value.description) {
+          result += `Description: ${value.description}\n`;
+        }
+        if (Array.isArray(value.activities) && value.activities.length > 0) {
+          result += `Activities:\n`;
+          value.activities.forEach((act) => {
+            result += `- ${act}\n`;
+          });
+        }
+        result += `\n`;
+        return result;
+      }
+
+      // If it's something else, just ignore
+      return "";
+    };
+
+    // Extract known steps in order:
+    const introductionText = lesson_steps
+      ? formatKnownStep(lesson_steps.introduction, "Introduction")
+      : "";
+    const guidedPracticeText = lesson_steps
+      ? formatKnownStep(lesson_steps.guided_practice, "Guided Practice")
+      : "";
+    const independentPracticeText = lesson_steps
+      ? formatKnownStep(
+          lesson_steps.independent_practice,
+          "Independent Practice"
+        )
+      : "";
+    const closureText = lesson_steps
+      ? formatKnownStep(lesson_steps.closure, "Closure")
+      : "";
+
+    // Assessment might have 'formative', 'summative', 'description', 'methods', etc.
+    // We'll handle similarly:
+    const formatAssessment = (assess) => {
+      if (!assess || typeof assess !== "object") return "";
+
+      let text = "Assessment:\n";
+
+      // Check keys commonly returned:
+      // If there's a 'description' key:
+      if (assess.description) {
+        text += `Description: ${assess.description}\n`;
+      }
+
+      // If there's a 'methods' array:
+      if (Array.isArray(assess.methods) && assess.methods.length > 0) {
+        text += `Methods:\n`;
+        assess.methods.forEach((m) => {
+          text += `- ${m}\n`;
+        });
+      }
+
+      // If there's 'formative' and 'summative' keys:
+      if (assess.formative) {
+        text += `Formative: ${assess.formative}\n`;
+      }
+      if (assess.summative) {
+        text += `Summative: ${assess.summative}\n`;
+      }
+
+      text += `\n`;
+      return text;
+    };
+
+    const assessmentText = formatAssessment(assessment);
+
+    return `Topic: ${topic || "N/A"}
+  Grade Level: ${grade_level || "N/A"}
+  Subject: ${subject || "N/A"}
+  Objective: ${lesson_objective || "N/A"}
+  
+  Materials:
+  ${materialsList}${durationText}${introductionText}${guidedPracticeText}${independentPracticeText}${closureText}${assessmentText}`;
+  };
+
   const months = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December",
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
   ];
 
   const year = 2024;
@@ -73,7 +212,11 @@ function App() {
         .then((res) => res.json())
         .then((data) => {
           console.log("Get lesson plans response:", data);
-          if (data.code === 1 && data.status === "success" && data.lesson_plans) {
+          if (
+            data.code === 1 &&
+            data.status === "success" &&
+            data.lesson_plans
+          ) {
             const fetchedNotes = data.lesson_plans.map((lp) => ({
               id: Date.now() + Math.random(),
               title: lp.topic || "<no title>",
@@ -103,6 +246,7 @@ function App() {
   };
 
   const saveNewNote = () => {
+    setShowAIPanel(false); // Reset AI panel state
     if (!selectedDate) return;
     const dateKey = getDateKey(
       selectedDate.year,
@@ -162,6 +306,7 @@ function App() {
   };
 
   const saveEditedNote = () => {
+    setShowAIPanel(false); // Reset AI panel state
     if (currentNoteIndex === null || !selectedDate) return;
     const dateKey = getDateKey(
       selectedDate.year,
@@ -253,6 +398,8 @@ function App() {
     setCurrentNoteIndex(null);
     setNoteText("");
     setTitleText("");
+    setShowAIPanel(false); // Reset AI panel state
+    setAiLessonPlan(null); // Clear AI lesson plan on modal close
   };
 
   const handleLogin = () => {
@@ -302,9 +449,31 @@ function App() {
   };
 
   const handleLogout = () => {
-    // Clear teacherId and notes on logout
     setTeacherId(null);
     setNotes({});
+  };
+
+  const handleGenerateAI = () => {
+    const aiObj = {
+      query: aiQuery,
+      grade: aiGrade,
+    };
+    console.log("AI Object:", aiObj);
+    fetch("http://127.0.0.1:8000/lesson-plans/generate/ai", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(aiObj),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("AI Generate response:", data);
+        if (data.code === 1 && data.status === "success" && data.lesson_plan) {
+          setAiLessonPlan(data);
+        } else {
+          setAiLessonPlan(null);
+        }
+      })
+      .catch((err) => console.error(err));
   };
 
   const currentNotes = selectedDate
@@ -312,6 +481,9 @@ function App() {
         getDateKey(selectedDate.year, selectedDate.monthIndex, selectedDate.day)
       ] || []
     : [];
+
+  // Dynamic modal width: if AI panel is shown, double the width
+  const modalWidthClass = showAIPanel ? "md:w-2/3" : "md:w-1/3";
 
   return (
     <>
@@ -339,7 +511,6 @@ function App() {
                 className="bg-white hover:scale-105 w-60 h-60 transition-transform transform hover:border-4 hover:border-orange-600 rounded-md p-3 shadow-sm"
               >
                 <div className="text-center font-bold mb-2">{monthName}</div>
-                {/* Day of Week Headers */}
                 <div className="grid grid-cols-7 text-xs font-semibold text-orange-600 mb-2">
                   <div className="text-center">S</div>
                   <div className="text-center">M</div>
@@ -349,7 +520,6 @@ function App() {
                   <div className="text-center">F</div>
                   <div className="text-center">S</div>
                 </div>
-                {/* Month Days */}
                 <div className="grid grid-cols-7 text-sm gap-1">
                   {daysArray.map((day, index) => (
                     <button
@@ -371,14 +541,16 @@ function App() {
         </div>
       </div>
 
-      {/* Notes Modal */}
       {modalOpen && selectedDate && (
         <div className="fixed inset-0 flex items-center justify-center z-50">
+          {/* Overlay */}
           <div
             className="absolute inset-0 bg-black opacity-50"
             onClick={closeModal}
           ></div>
-          <div className="bg-white border-4 rounded-lg pt-6 pb-4 text-center shadow-lg z-10 md:w-1/3 h-2/3 md:h-3/4 flex flex-col">
+          <div
+            className={`bg-white border-4 rounded-lg pt-6 pb-4 text-center shadow-lg z-10 ${modalWidthClass} h-2/3 md:h-3/4 flex flex-col transition-all duration-300`}
+          >
             <h2 className="text-xl text-orange-600 font-semibold mb-2">
               Notes for {months[selectedDate.monthIndex]} {selectedDate.day},{" "}
               {selectedDate.year}
@@ -392,7 +564,7 @@ function App() {
                       No notes for this day. Click "Add Note" to add one!
                     </div>
                   ) : (
-                    <div className="flex flex-col space-y-2 h-full p-3 mb-4">
+                    <div className="flex flex-col space-y-2 h-full px-10 py-4 mb-4">
                       {currentNotes.map((n, i) => (
                         <div
                           key={n.id}
@@ -434,24 +606,102 @@ function App() {
 
             {viewMode === "add" && (
               <>
-                <div className="flex-grow px-2 overflow-auto">
-                  <Title titleText={titleText} setTitleText={setTitleText} />
-                  <textarea
-                    className="w-full h-5/6 border-4 border-orange-200 rounded-lg p-2"
-                    value={noteText}
-                    onChange={(e) => setNoteText(e.target.value)}
-                    placeholder="Add notes to your lesson plan..."
-                  />
+                {/* We have two cards side-by-side if showAIPanel is true */}
+                <div
+                  className={`flex-grow flex ${
+                    showAIPanel ? "flex-row" : "flex-col"
+                  } transition-all duration-300`}
+                >
+                  {/* Left card (Add note card) */}
+                  <div
+                    className={`flex flex-col h-full px-4 ${
+                      showAIPanel
+                        ? "w-1/2 border-r-2 border-gray-300"
+                        : "w-full"
+                    }`}
+                  >
+                    <Title titleText={titleText} setTitleText={setTitleText} />
+                    <textarea
+                      className={`w-full h-5/6 border-4 border-orange-200 rounded-lg p-2`}
+                      value={noteText}
+                      onChange={(e) => setNoteText(e.target.value)}
+                      placeholder="Add notes to your lesson plan..."
+                    />
+                    <div className="flex justify-end items-center mt-2">
+                      <button
+                        className="bg-purple-600 hover:bg-purple-800  hover:scale-105 transition-transform rounded-xl px-4 py-1 font-bold text-white"
+                        onClick={() => setShowAIPanel(true)}
+                      >
+                        Use AI
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Right card (AI card) appears if showAIPanel is true */}
+                  {showAIPanel && (
+                    <div className="w-1/2 px-4 overflow-auto flex flex-col gap-3">
+                      <h3 className="text-lg font-bold mb-3 text-purple-600">
+                        AI Lesson Plan Generator
+                      </h3>
+                      <textarea
+                        className={`border-2 text-top ${
+                          aiLessonPlan ? "h-10" : "h-5/6"
+                        } border-purple-400 rounded-xl p-2 w-full`}
+                        placeholder="What do you want to teach?..."
+                        value={aiQuery}
+                        onChange={(e) => setAIQuery(e.target.value)}
+                      />
+                      {aiLessonPlan && (
+                        <textarea
+                          className="border-2 text-top h-5/6 border-purple-400 rounded-xl p-2 w-full mt-2"
+                          readOnly
+                          value={formatLessonPlan(aiLessonPlan.lesson_plan)}
+                        />
+                      )}
+                      <div className="flex justify-between">
+                        <select
+                          className="border-2 border-red-300 rounded-lg p-2"
+                          value={aiGrade}
+                          onChange={(e) => setAIGrade(e.target.value)}
+                        >
+                          <option value="">Choose Grade</option>
+                          <option value="1st grade">1st grade</option>
+                          <option value="2nd grade">2nd grade</option>
+                          <option value="3rd grade">3rd grade</option>
+                          <option value="4th grade">4th grade</option>
+                          <option value="5th grade">5th grade</option>
+                          <option value="6th grade">6th grade</option>
+                          <option value="MS">MS (Middle School)</option>
+                          <option value="HS">HS (High School)</option>
+                        </select>
+                        <button
+                          className="bg-violet-600 text-white rounded-xl px-4 py-1 font-bold hover:bg-green-600 transition-transform hover:scale-105"
+                          onClick={handleGenerateAI}
+                        >
+                          Generate
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div className="flex justify-between px-2 space-x-2">
+                {/* Buttons below both cards */}
+                <div
+                  className={`flex px-2 space-x-2 mt-4 ${
+                    showAIPanel ? "justify-start" : "justify-between"
+                  }`}
+                >
                   <button
-                    className="border transition-transform hover:scale-105 border-gray-300 mt-4 px-4 py-2 rounded-xl hover:bg-gray-100"
-                    onClick={() => setViewMode("main")}
+                    className="border transition-transform hover:scale-105 border-gray-300 px-4 py-2 rounded-xl hover:bg-gray-100"
+                    onClick={() => {
+                      setViewMode("main");
+                      setShowAIPanel(false);
+                      setAiLessonPlan(null);
+                    }}
                   >
                     Cancel
                   </button>
                   <button
-                    className="bg-cyan-400 mt-4 font-bold transition-transform rounded-xl hover:scale-105 hover:border-4 hover:border-green-300 text-white px-10 py-1 rounded-lg hover:bg-green-600"
+                    className="bg-cyan-400 font-bold transition-transform rounded-xl hover:scale-105 hover:border-4 hover:border-green-300 text-white px-10 py-1 hover:bg-green-600"
                     onClick={saveNewNote}
                   >
                     Save
@@ -462,34 +712,109 @@ function App() {
 
             {viewMode === "edit" && (
               <>
-                <div className="flex-grow px-2 overflow-auto">
-                  <Title titleText={titleText} setTitleText={setTitleText} />
-                  <textarea
-                    className="w-full h-4/5 border-4 border-orange-200 rounded-lg p-2"
-                    value={noteText}
-                    onChange={(e) => setNoteText(e.target.value)}
-                  />
-                  <div className="flex justify-start items-center">
-                    <button
-                      className="bg-yellow-600 text-white transition-transform w-32 hover:scale-105 font-semibold rounded-lg py-2 hover:bg-yellow-600"
-                      onClick={clearNoteText}
-                    >
-                      Clear
-                    </button>
+                {/* We have two cards side-by-side if showAIPanel is true */}
+                <div
+                  className={`flex-grow flex ${
+                    showAIPanel ? "flex-row" : "flex-col"
+                  } transition-all duration-300`}
+                >
+                  {/* Left card (Edit note card) */}
+                  <div
+                    className={`flex flex-col h-full px-4 ${
+                      showAIPanel
+                        ? "w-1/2 border-r-2 border-gray-300"
+                        : "w-full"
+                    }`}
+                  >
+                    <Title titleText={titleText} setTitleText={setTitleText} />
+                    <textarea
+                      className={`w-full h-5/6 border-4 border-orange-200 rounded-lg p-2`}
+                      value={noteText}
+                      onChange={(e) => setNoteText(e.target.value)}
+                      placeholder="Edit your lesson plan notes..."
+                    />
+                    <div className="flex justify-end items-center mt-2 gap-2">
+                      <button
+                        className="bg-yellow-600 text-white transition-transform w-32 hover:scale-105 font-semibold rounded-lg py-1 hover:bg-yellow-600"
+                        onClick={clearNoteText}
+                      >
+                        Clear
+                      </button>
+                      <button
+                        className="bg-purple-600 hover:scale-105 transition-transform hover:bg-purple-800 rounded-xl px-4 py-1 font-bold text-white"
+                        onClick={() => setShowAIPanel(true)}
+                      >
+                        Use AI
+                      </button>
+                    </div>
                   </div>
+
+                  {/* Right card (AI card) appears if showAIPanel is true */}
+                  {showAIPanel && (
+                    <div className="w-1/2 px-4 overflow-auto flex flex-col gap-3">
+                      <h3 className="text-lg font-bold mb-3 text-purple-600">
+                        AI Lesson Plan Generator
+                      </h3>
+                      <textarea
+                        className={`border-2 text-top ${
+                          aiLessonPlan ? "h-10" : "h-5/6"
+                        } border-purple-400 rounded-xl p-2 w-full`}
+                        placeholder="What do you want to teach?..."
+                        value={aiQuery}
+                        onChange={(e) => setAIQuery(e.target.value)}
+                      />
+                      {aiLessonPlan && (
+                        <textarea
+                          className="border-2 text-top h-5/6 border-purple-400 rounded-xl p-2 w-full mt-2"
+                          readOnly
+                          value={formatLessonPlan(aiLessonPlan.lesson_plan)}
+                        />
+                      )}
+                      <div className="flex justify-between">
+                        <select
+                          className="border-2 w-32 border-red-300 rounded-lg p-2"
+                          value={aiGrade}
+                          onChange={(e) => setAIGrade(e.target.value)}
+                        >
+                          <option value="">Choose Grade</option>
+                          <option value="1st grade">1st grade</option>
+                          <option value="2nd grade">2nd grade</option>
+                          <option value="3rd grade">3rd grade</option>
+                          <option value="4th grade">4th grade</option>
+                          <option value="5th grade">5th grade</option>
+                          <option value="6th grade">6th grade</option>
+                          <option value="MS">MS (Middle School)</option>
+                          <option value="HS">HS (High School)</option>
+                        </select>
+                        <button
+                          className="bg-violet-600 text-white rounded-xl px-4 py-1 font-bold hover:bg-green-600 transition-transform hover:scale-105"
+                          onClick={handleGenerateAI}
+                        >
+                          Generate
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div className="flex mt-3 px-2 justify-between space-x-2">
+                {/* Buttons below both cards */}
+                <div
+                  className={`flex px-2 space-x-2 mt-4 ${
+                    showAIPanel ? "justify-start" : "justify-between"
+                  }`}
+                >
                   <button
-                    className="bg-gray-700 rounded-lg w-32 text-white transition-transform hover:scale-105 px-8 font-semibold py-2 hover:bg-black"
+                    className="border self-start transition-transform hover:scale-105 border-gray-300 px-4 py-2 rounded-xl hover:bg-gray-100"
                     onClick={() => {
                       setViewMode("main");
                       setCurrentNoteIndex(null);
+                      setShowAIPanel(false);
+                      setAiLessonPlan(null);
                     }}
                   >
                     Cancel
                   </button>
                   <button
-                    className="bg-cyan-400 rounded-lg transition-transform hover:bg-green-600 hover:scale-105 text-white px-8 font-semibold py-2"
+                    className="bg-cyan-400 ml-auto  font-bold transition-transform rounded-xl hover:scale-105 hover:border-4 hover:border-green-300 text-white px-10 py-1 hover:bg-green-600"
                     onClick={saveEditedNote}
                   >
                     Update
@@ -508,7 +833,9 @@ function App() {
             onClick={() => setLoginModalOpen(false)}
           ></div>
           <div className="bg-white border-4 rounded-lg pt-6 pb-4 px-4 text-center shadow-lg z-10 md:w-1/3 flex flex-col">
-            <h2 className="text-xl text-orange-600 font-semibold mb-4">Login</h2>
+            <h2 className="text-xl text-orange-600 font-semibold mb-4">
+              Login
+            </h2>
             <div className="overflow-auto flex flex-col items-center px-2">
               <input
                 className="border-2 border-orange-300 rounded-lg mb-2 p-2 w-full"
