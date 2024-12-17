@@ -2,10 +2,13 @@ import { useState } from "react";
 import "./App.css";
 import Nav from "./components/Nav";
 import Title from "./components/Title";
+import { FaBoltLightning } from "react-icons/fa6";
+import { FaArrowAltCircleRight } from "react-icons/fa";
+import { FaCheckCircle } from "react-icons/fa";
+
+
 
 function App() {
-  const [count, setCount] = useState(0);
-
   const [notes, setNotes] = useState({});
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null); // { monthIndex, day, year }
@@ -629,10 +632,11 @@ function App() {
                     />
                     <div className="flex justify-end items-center mt-2">
                       <button
-                        className="bg-purple-600 hover:bg-purple-800  hover:scale-105 transition-transform rounded-xl px-4 py-1 font-bold text-white"
+                        className="bg-purple-600 hover:bg-purple-800  hover:scale-105 transition-transform rounded-xl flex items-center px-4 py-1 font-bold text-white"
                         onClick={() => setShowAIPanel(true)}
                       >
-                        Use AI
+                        <span>Use AI</span>
+                        <FaArrowAltCircleRight className="ml-4" size={20} />
                       </button>
                     </div>
                   </div>
@@ -640,9 +644,13 @@ function App() {
                   {/* Right card (AI card) appears if showAIPanel is true */}
                   {showAIPanel && (
                     <div className="w-1/2 px-4 overflow-auto flex flex-col gap-3">
-                      <h3 className="text-lg font-bold mb-3 text-purple-600">
-                        AI Lesson Plan Generator
-                      </h3>
+                      <div className="flex justify-center items-center">
+                        <div className="w-full lg:w-2/3 px-2 flex gap-3 justify-center items-center rounded-xl border border-red-400 bg-black text-md font-bold text-white">
+                          <FaBoltLightning className="text-red-400" />
+                          <div>AI Lesson Plan Generator</div>
+                          <FaBoltLightning className="text-red-400" />
+                        </div>
+                      </div>
                       <textarea
                         className={`border-2 text-top ${
                           aiLessonPlan ? "h-10" : "h-5/6"
@@ -658,9 +666,9 @@ function App() {
                           value={formatLessonPlan(aiLessonPlan.lesson_plan)}
                         />
                       )}
-                      <div className="flex justify-between">
+                      <div className="flex w-full justify-between">
                         <select
-                          className="border-2 border-red-300 rounded-lg p-2"
+                          className="border-2 w-1/3 border-red-300 rounded-lg p-2"
                           value={aiGrade}
                           onChange={(e) => setAIGrade(e.target.value)}
                         >
@@ -701,10 +709,12 @@ function App() {
                     Cancel
                   </button>
                   <button
-                    className="bg-cyan-400 font-bold transition-transform rounded-xl hover:scale-105 hover:border-4 hover:border-green-300 text-white px-10 py-1 hover:bg-green-600"
+                    className="bg-cyan-400 font-bold flex justify-center items-center gap-3 transition-transform rounded-xl hover:scale-105 text-white px-6 hover:bg-green-600"
                     onClick={saveNewNote}
                   >
-                    Save
+                    <span className="text-lg">Save</span>
+                    <FaCheckCircle  size={24} />
+                    
                   </button>
                 </div>
               </>
@@ -741,10 +751,11 @@ function App() {
                         Clear
                       </button>
                       <button
-                        className="bg-purple-600 hover:scale-105 transition-transform hover:bg-purple-800 rounded-xl px-4 py-1 font-bold text-white"
+                        className="bg-purple-600 hover:bg-purple-800  hover:scale-105 transition-transform rounded-xl flex items-center px-4 py-1 font-bold text-white"
                         onClick={() => setShowAIPanel(true)}
                       >
-                        Use AI
+                        <span>Use AI</span>
+                        <FaArrowAltCircleRight className="ml-4" size={20} />
                       </button>
                     </div>
                   </div>
@@ -752,9 +763,14 @@ function App() {
                   {/* Right card (AI card) appears if showAIPanel is true */}
                   {showAIPanel && (
                     <div className="w-1/2 px-4 overflow-auto flex flex-col gap-3">
-                      <h3 className="text-lg font-bold mb-3 text-purple-600">
-                        AI Lesson Plan Generator
-                      </h3>
+                      <div className="flex justify-center items-center">
+                        <div className="w-full lg:w-2/3 px-2 flex gap-3 justify-center items-center rounded-xl border border-red-400 bg-black text-md font-bold text-white">
+                          <FaBoltLightning className="text-red-400" />
+                          <div>AI Lesson Plan Generator</div>
+                          <FaBoltLightning className="text-red-400" />
+                        </div>
+                      </div>
+
                       <textarea
                         className={`border-2 text-top ${
                           aiLessonPlan ? "h-10" : "h-5/6"
