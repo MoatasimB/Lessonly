@@ -5,6 +5,10 @@ import Title from "./components/Title";
 import { FaBoltLightning } from "react-icons/fa6";
 import { FaArrowAltCircleRight } from "react-icons/fa";
 import { FaCheckCircle } from "react-icons/fa";
+import { FaArrowAltCircleLeft } from "react-icons/fa";
+import { FaPlus } from "react-icons/fa";
+import { HiXCircle } from "react-icons/hi2";
+
 
 
 
@@ -13,6 +17,7 @@ function App() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null); // { monthIndex, day, year }
   const [viewMode, setViewMode] = useState("main");
+  const [displayedYear, setDisplayedYear] = useState(2024);
 
   const [currentNoteIndex, setCurrentNoteIndex] = useState(null);
   const [noteText, setNoteText] = useState("");
@@ -57,12 +62,6 @@ function App() {
 
     const durationText = `\n\nDuration: ${lesson_duration || "N/A"}\n\n`;
 
-    // A helper function to format a known step. This step could be:
-    // 1) A string: print a single bullet
-    // 2) An array of strings: print each as a bullet
-    // 3) An object with 'description' and 'activities':
-    //    - Print description on one line
-    //    - Print activities as bullets
     const formatKnownStep = (value, displayName) => {
       if (value === undefined) return "";
       let result = `${displayName}:\n`;
@@ -74,7 +73,7 @@ function App() {
       }
 
       if (Array.isArray(value)) {
-        // Array of strings
+        // Array
         value.forEach((item) => {
           result += `- ${item}\n`;
         });
@@ -83,7 +82,6 @@ function App() {
       }
 
       if (typeof value === "object" && value !== null) {
-        // Object with potential 'description' and 'activities'
         if (value.description) {
           result += `Description: ${value.description}\n`;
         }
@@ -97,7 +95,6 @@ function App() {
         return result;
       }
 
-      // If it's something else, just ignore
       return "";
     };
 
@@ -119,13 +116,12 @@ function App() {
       : "";
 
     // Assessment might have 'formative', 'summative', 'description', 'methods', etc.
-    // We'll handle similarly:
+
     const formatAssessment = (assess) => {
       if (!assess || typeof assess !== "object") return "";
 
       let text = "Assessment:\n";
 
-      // Check keys commonly returned:
       // If there's a 'description' key:
       if (assess.description) {
         text += `Description: ${assess.description}\n`;
@@ -177,8 +173,6 @@ function App() {
     "December",
   ];
 
-  const year = 2024;
-
   const getDaysInMonth = (month, year) => {
     return new Date(year, month + 1, 0).getDate();
   };
@@ -193,7 +187,7 @@ function App() {
 
   const handleDayClick = (monthIndex, day) => {
     if (!day) return;
-    const date = { monthIndex, day, year };
+    const date = { monthIndex, day, year: displayedYear };
     setSelectedDate(date);
     setViewMode("main");
     setModalOpen(true);
@@ -214,7 +208,7 @@ function App() {
       })
         .then((res) => res.json())
         .then((data) => {
-          console.log("Get lesson plans response:", data);
+          console.log("Get lesson plans response:");
           if (
             data.code === 1 &&
             data.status === "success" &&
@@ -276,6 +270,7 @@ function App() {
         grade: null,
         plan: noteText,
       };
+      // console.log("Create Object:", createObj);
 
       fetch("http://127.0.0.1:8000/lesson-plans/generate", {
         method: "POST",
@@ -283,7 +278,7 @@ function App() {
         body: JSON.stringify(createObj),
       })
         .then((res) => res.json())
-        .then((data) => console.log("Create response:", data))
+        .then((data) => console.log("Create response:"))
         .catch((err) => console.error(err));
     }
   };
@@ -342,14 +337,14 @@ function App() {
         new_plan: noteText,
       };
 
-      console.log("Update Object:", updateObj);
+      // console.log("Update Object:", updateObj);
       fetch("http://127.0.0.1:8000/lesson-plans/update", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updateObj),
       })
         .then((res) => res.json())
-        .then((data) => console.log("Update response:", data))
+        .then((data) => console.log("Update response:"))
         .catch((err) => console.error(err));
     }
   };
@@ -382,14 +377,14 @@ function App() {
         topic: noteToDelete.title,
       };
 
-      console.log("Delete Object:", deleteObj);
+      // console.log("Delete Object:", deleteObj);
       const queryParams = new URLSearchParams(deleteObj).toString();
 
       fetch(`http://127.0.0.1:8000/lesson-plans/delete?${queryParams}`, {
         method: "DELETE",
       })
         .then((res) => res.json())
-        .then((data) => console.log("Delete response:", data))
+        .then((data) => console.log("Delete response:"))
         .catch((err) => console.error(err));
     }
   };
@@ -410,7 +405,7 @@ function App() {
       email: loginEmail,
       password: loginPassword,
     };
-    console.log("Login Object:", loginObj);
+    // console.log("Login Object:", loginObj);
     fetch("http://127.0.0.1:8000/users/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -434,7 +429,7 @@ function App() {
       password: signupPassword,
       username: signupUsername,
     };
-    console.log("Signup Object:", signupObj);
+    // console.log("Signup Object:", signupObj);
     fetch("http://127.0.0.1:8000/users/add", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -442,7 +437,7 @@ function App() {
     })
       .then((res) => res.json())
       .then((data) => {
-        console.log("Signup response:", data);
+        console.log("Signup response:");
         if (data.code === 1 && data.status === "success" && data.user_id) {
           setTeacherId(data.user_id);
         }
@@ -461,7 +456,7 @@ function App() {
       query: aiQuery,
       grade: aiGrade,
     };
-    console.log("AI Object:", aiObj);
+    // console.log("AI Object:", aiObj);
     fetch("http://127.0.0.1:8000/lesson-plans/generate/ai", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -469,7 +464,7 @@ function App() {
     })
       .then((res) => res.json())
       .then((data) => {
-        console.log("AI Generate response:", data);
+        console.log("AI Generate response:");
         if (data.code === 1 && data.status === "success" && data.lesson_plan) {
           setAiLessonPlan(data);
         } else {
@@ -496,13 +491,32 @@ function App() {
         teacherId={teacherId}
         onLogoutClick={handleLogout}
       />
-      <div className="flex border-4 flex-col min-h-screen items-center justify-center gap-10 bg-orange-100">
-        <h1 className="text-2xl font-bold">{year}</h1>
+      <div className="flex flex-col min-h-screen items-center justify-center gap-10 bg-orange-100"
+      style={{ fontFamily: "Comic Sans MS, Comic Sans, cursive" }}>
+        <div className="text-center mt-2 xl:-mt-6 px-4 rounded-xl flex items-center justify-center gap-4">
+          {/* 2. Left Arrow (just sets to 2024 for aesthetics) */}
+          <button
+            className="text-gray-600 hover:text-black"
+            onClick={() => setDisplayedYear(2024)}
+          >
+            <FaArrowAltCircleLeft color="orange" className="transition-transform hover:scale-110" size={24} />
+          </button>
+
+          <h1 className="text-2xl font-bold">{displayedYear}</h1>
+
+          {/* 3. Right Arrow toggles to 2025 */}
+          <button
+            className="text-gray-600 hover:text-black"
+            onClick={() => setDisplayedYear(2025)}
+          >
+            <FaArrowAltCircleRight color="orange" className="transition-transform hover:scale-110" size={24} />
+          </button>
+        </div>
         {/* Calendar Grid */}
         <div className="grid grid-cols-2 px-1 mb-8 sm:grid-cols-3 lg:grid-cols-4 gap-8">
           {months.map((monthName, monthIndex) => {
-            const daysInMonth = getDaysInMonth(monthIndex, year);
-            const firstDay = getFirstDayOfMonth(monthIndex, year);
+            const daysInMonth = getDaysInMonth(monthIndex, displayedYear);
+            const firstDay = getFirstDayOfMonth(monthIndex, displayedYear);
 
             const daysArray = Array(firstDay)
               .fill(null)
@@ -580,10 +594,10 @@ function App() {
                             {n.title || "<no title>"}
                           </div>
                           <button
-                            className="bg-red-400 text-white px-4 py-2 rounded-full hover:scale-125 transition-transform hover:bg-red-600 flex-shrink-0"
+                            className="text-white rounded-full hover:scale-125 transition-transform flex-shrink-0"
                             onClick={() => deleteNote(i)}
                           >
-                            X
+                            <HiXCircle color="red" size={36} />
                           </button>
                         </div>
                       ))}
@@ -598,10 +612,10 @@ function App() {
                     Close
                   </button>
                   <button
-                    className="bg-cyan-400 font-semibold w-32 hover:scale-105 transition-transform text-white px-4 py-2 rounded-xl hover:bg-orange-300"
+                    className="bg-cyan-400 flex w-36 justify-center items-center gap-4 font-semibold hover:scale-105 transition-transform text-white px-4 py-2 rounded-xl hover:bg-orange-300"
                     onClick={startAddNote}
                   >
-                    Add Note
+                    Add Note <FaPlus />
                   </button>
                 </div>
               </>
@@ -645,7 +659,7 @@ function App() {
                   {showAIPanel && (
                     <div className="w-1/2 px-4 overflow-auto flex flex-col gap-3">
                       <div className="flex justify-center items-center">
-                        <div className="w-full lg:w-2/3 px-2 flex gap-3 justify-center items-center rounded-xl border border-red-400 bg-black text-md font-bold text-white">
+                        <div className="w-full lg:w-2/3 px-2 md:py-2 flex gap-3 justify-center items-center rounded-xl border border-red-400 bg-black text-md font-bold text-white">
                           <FaBoltLightning className="text-red-400" />
                           <div>AI Lesson Plan Generator</div>
                           <FaBoltLightning className="text-red-400" />
@@ -713,8 +727,7 @@ function App() {
                     onClick={saveNewNote}
                   >
                     <span className="text-lg">Save</span>
-                    <FaCheckCircle  size={24} />
-                    
+                    <FaCheckCircle size={24} />
                   </button>
                 </div>
               </>
@@ -876,7 +889,7 @@ function App() {
                 Cancel
               </button>
               <button
-                className="bg-cyan-400 mt-4 font-bold transition-transform rounded-xl hover:scale-105 hover:border-4 hover:border-green-300 text-white px-10 py-1 rounded-lg hover:bg-green-600"
+                className="bg-cyan-400 mt-4 font-bold transition-transform rounded-xl hover:scale-105 hover:border-4 hover:border-green-300 text-white px-10 py-1 hover:bg-green-600"
                 onClick={handleLogin}
               >
                 Login
@@ -934,7 +947,7 @@ function App() {
                 Cancel
               </button>
               <button
-                className="bg-cyan-400 mt-4 font-bold transition-transform rounded-xl hover:scale-105 hover:border-4 hover:border-green-300 text-white px-10 py-1 rounded-lg hover:bg-green-600"
+                className="bg-cyan-400 mt-4 font-bold transition-transform rounded-xl hover:scale-105 hover:border-4 hover:border-green-300 text-white px-10 py-1 hover:bg-green-600"
                 onClick={handleSignup}
               >
                 Signup
