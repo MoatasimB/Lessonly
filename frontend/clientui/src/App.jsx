@@ -248,7 +248,9 @@ function App() {
   };
 
   const saveNewNote = () => {
+
     setShowAIPanel(false); // Reset AI panel state
+    setAIQuery("");
     if (!selectedDate) return;
     const dateKey = getDateKey(
       selectedDate.year,
@@ -786,6 +788,7 @@ function App() {
                       setViewMode("main");
                       setShowAIPanel(false);
                       setAiLessonPlan(null);
+                      setAIQuery("");
                     }}
                   >
                     Cancel
