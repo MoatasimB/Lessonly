@@ -9,15 +9,13 @@ import { FaArrowAltCircleLeft } from "react-icons/fa";
 import { FaPlus } from "react-icons/fa";
 import { HiXCircle } from "react-icons/hi2";
 
-
-
-
 function App() {
   const [notes, setNotes] = useState({});
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null); // { monthIndex, day, year }
   const [viewMode, setViewMode] = useState("main");
   const [displayedYear, setDisplayedYear] = useState(2024);
+  const [loginError, setLoginError] = useState("");
 
   const [currentNoteIndex, setCurrentNoteIndex] = useState(null);
   const [noteText, setNoteText] = useState("");
@@ -33,6 +31,13 @@ function App() {
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [signupUsername, setSignupUsername] = useState("");
+
+  const [signupErrors, setSignupErrors] = useState({
+    name: "",
+    username: "",
+    email: "",
+    password: "",
+  });
 
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
@@ -115,19 +120,19 @@ function App() {
       ? formatKnownStep(lesson_steps.closure, "Closure")
       : "";
 
-    // Assessment might have 'formative', 'summative', 'description', 'methods', etc.
+    // Response might have 'formative', 'summative', 'description', 'methods'
 
     const formatAssessment = (assess) => {
       if (!assess || typeof assess !== "object") return "";
 
       let text = "Assessment:\n";
 
-      // If there's a 'description' key:
+      // If 'description' key:
       if (assess.description) {
         text += `Description: ${assess.description}\n`;
       }
 
-      // If there's a 'methods' array:
+      // If 'methods' array:
       if (Array.isArray(assess.methods) && assess.methods.length > 0) {
         text += `Methods:\n`;
         assess.methods.forEach((m) => {
@@ -135,7 +140,7 @@ function App() {
         });
       }
 
-      // If there's 'formative' and 'summative' keys:
+      // If 'formative' or 'summative' keys:
       if (assess.formative) {
         text += `Formative: ${assess.formative}\n`;
       }
@@ -304,7 +309,7 @@ function App() {
   };
 
   const saveEditedNote = () => {
-    setShowAIPanel(false); // Reset AI panel state
+    setShowAIPanel(false);
     if (currentNoteIndex === null || !selectedDate) return;
     const dateKey = getDateKey(
       selectedDate.year,
@@ -396,8 +401,8 @@ function App() {
     setCurrentNoteIndex(null);
     setNoteText("");
     setTitleText("");
-    setShowAIPanel(false); // Reset AI panel state
-    setAiLessonPlan(null); // Clear AI lesson plan on modal close
+    setShowAIPanel(false); 
+    setAiLessonPlan(null); 
   };
 
   const handleLogin = () => {
@@ -405,7 +410,8 @@ function App() {
       email: loginEmail,
       password: loginPassword,
     };
-    // console.log("Login Object:", loginObj);
+    setLoginError("");
+    // console.log("Login Object:");
     fetch("http://127.0.0.1:8000/users/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -413,7 +419,16 @@ function App() {
     })
       .then((res) => res.json())
       .then((data) => {
-        console.log("Login response:", data);
+        console.log("Login response:");
+        if (data.code === (0)  && data.message === "Wrong password or email") {
+          setLoginError("Wrong password or email");
+          return;
+        }
+        if (data.code === 422) {
+          setLoginError("Incorrect email format or password is less than 6 characters");
+          return;
+        }
+
         if (data.code === 1 && data.status === "success" && data.user_id) {
           setTeacherId(data.user_id);
         }
@@ -423,13 +438,50 @@ function App() {
   };
 
   const handleSignup = () => {
+    let hasError = false;
+    const newErrors = { name: "", username: "", email: "", password: "" };
+
+    // Name check
+    if (!signupName.trim()) {
+      newErrors.name = "Name cannot be empty";
+      hasError = true;
+    }
+
+    // Username check
+    if (!signupUsername.trim()) {
+      newErrors.username = "Username cannot be empty";
+      hasError = true;
+    }
+
+    // Email checks
+    if (!signupEmail.trim()) {
+      newErrors.email = "Email cannot be empty";
+      hasError = true;
+    } else if (!signupEmail.includes("@")) {
+      newErrors.email = "Email is not valid";
+      hasError = true;
+    }
+
+    // Password checks
+    if (!signupPassword) {
+      newErrors.password = "Password cannot be empty";
+      hasError = true;
+    } else if (signupPassword.length < 6) {
+      newErrors.password = "Password must be at least 6 characters";
+      hasError = true;
+    }
+
+    setSignupErrors(newErrors);
+
+    if (hasError) return;
+
     const signupObj = {
       name: signupName,
       email: signupEmail,
       password: signupPassword,
       username: signupUsername,
     };
-    // console.log("Signup Object:", signupObj);
+
     fetch("http://127.0.0.1:8000/users/add", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -438,10 +490,20 @@ function App() {
       .then((res) => res.json())
       .then((data) => {
         console.log("Signup response:");
+
+        if (data.code === 0 && data.message === "User already exists") {
+          // Show "user already exists" error
+          setSignupErrors({
+            ...newErrors,
+            password: "User already exists",
+          });
+          return;
+        }
+
         if (data.code === 1 && data.status === "success" && data.user_id) {
           setTeacherId(data.user_id);
+          setSignupModalOpen(false);
         }
-        setSignupModalOpen(false);
       })
       .catch((err) => console.error(err));
   };
@@ -456,7 +518,7 @@ function App() {
       query: aiQuery,
       grade: aiGrade,
     };
-    // console.log("AI Object:", aiObj);
+    // console.log("AI Object:");
     fetch("http://127.0.0.1:8000/lesson-plans/generate/ai", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -480,7 +542,6 @@ function App() {
       ] || []
     : [];
 
-  // Dynamic modal width: if AI panel is shown, double the width
   const modalWidthClass = showAIPanel ? "md:w-2/3" : "md:w-1/3";
 
   return (
@@ -491,15 +552,20 @@ function App() {
         teacherId={teacherId}
         onLogoutClick={handleLogout}
       />
-      <div className="flex flex-col min-h-screen items-center justify-center gap-10 bg-orange-100"
-      style={{ fontFamily: "Comic Sans MS, Comic Sans, cursive" }}>
-        <div className="text-center mt-2 xl:-mt-6 px-4 rounded-xl flex items-center justify-center gap-4">
-          {/* 2. Left Arrow (just sets to 2024 for aesthetics) */}
+      <div
+        className="flex flex-col min-h-screen items-center justify-center gap-10 bg-orange-100"
+        style={{ fontFamily: "Comic Sans MS, Comic Sans, cursive" }}
+      >
+        <div className="text-center mt-2  px-4 rounded-xl flex items-center justify-center gap-4">
           <button
             className="text-gray-600 hover:text-black"
             onClick={() => setDisplayedYear(2024)}
           >
-            <FaArrowAltCircleLeft color="orange" className="transition-transform hover:scale-110" size={24} />
+            <FaArrowAltCircleLeft
+              color="orange"
+              className="transition-transform hover:scale-110"
+              size={24}
+            />
           </button>
 
           <h1 className="text-2xl font-bold">{displayedYear}</h1>
@@ -509,7 +575,11 @@ function App() {
             className="text-gray-600 hover:text-black"
             onClick={() => setDisplayedYear(2025)}
           >
-            <FaArrowAltCircleRight color="orange" className="transition-transform hover:scale-110" size={24} />
+            <FaArrowAltCircleRight
+              color="orange"
+              className="transition-transform hover:scale-110"
+              size={24}
+            />
           </button>
         </div>
         {/* Calendar Grid */}
@@ -559,8 +629,8 @@ function App() {
       </div>
 
       {modalOpen && selectedDate && (
-        <div className="fixed inset-0 flex items-center justify-center z-50">
-          {/* Overlay */}
+        <div className="fixed inset-0 flex items-center justify-center z-50"
+        style={{ fontFamily: "Comic Sans MS, Comic Sans, cursive" }}>
           <div
             className="absolute inset-0 bg-black opacity-50"
             onClick={closeModal}
@@ -623,7 +693,6 @@ function App() {
 
             {viewMode === "add" && (
               <>
-                {/* We have two cards side-by-side if showAIPanel is true */}
                 <div
                   className={`flex-grow flex ${
                     showAIPanel ? "flex-row" : "flex-col"
@@ -706,7 +775,6 @@ function App() {
                     </div>
                   )}
                 </div>
-                {/* Buttons below both cards */}
                 <div
                   className={`flex px-2 space-x-2 mt-4 ${
                     showAIPanel ? "justify-start" : "justify-between"
@@ -735,7 +803,6 @@ function App() {
 
             {viewMode === "edit" && (
               <>
-                {/* We have two cards side-by-side if showAIPanel is true */}
                 <div
                   className={`flex-grow flex ${
                     showAIPanel ? "flex-row" : "flex-col"
@@ -825,7 +892,6 @@ function App() {
                     </div>
                   )}
                 </div>
-                {/* Buttons below both cards */}
                 <div
                   className={`flex px-2 space-x-2 mt-4 ${
                     showAIPanel ? "justify-start" : "justify-between"
@@ -856,40 +922,70 @@ function App() {
       )}
 
       {loginModalOpen && (
-        <div className="fixed inset-0 flex items-center justify-center z-50">
-          <div
-            className="absolute inset-0 bg-black opacity-50"
-            onClick={() => setLoginModalOpen(false)}
-          ></div>
-          <div className="bg-white border-4 rounded-lg pt-6 pb-4 px-4 text-center shadow-lg z-10 md:w-1/3 flex flex-col">
-            <h2 className="text-xl text-orange-600 font-semibold mb-4">
+        <div
+          className="fixed inset-0 z-30 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          style={{ fontFamily: "Comic Sans MS, Comic Sans, cursive" }}
+        >
+          <div className="relative w-full max-w-md mx-auto bg-white rounded-2xl shadow-xl p-6 md:max-w-lg">
+            <button
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+              onClick={() => setLoginModalOpen(false)}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-6 h-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+
+            <h2 className="text-2xl md:text-3xl font-bold text-center mb-4 text-orange-600">
               Login
             </h2>
-            <div className="overflow-auto flex flex-col items-center px-2">
+
+            <div className="flex flex-col space-y-4">
               <input
-                className="border-2 border-orange-300 rounded-lg mb-2 p-2 w-full"
+                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400 transition"
                 type="email"
                 placeholder="Email"
                 value={loginEmail}
                 onChange={(e) => setLoginEmail(e.target.value)}
               />
               <input
-                className="border-2 border-orange-300 rounded-lg mb-2 p-2 w-full"
+                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400 transition"
                 type="password"
                 placeholder="Password"
                 value={loginPassword}
                 onChange={(e) => setLoginPassword(e.target.value)}
               />
+              {loginError && (
+                <p className="text-red-600 text-sm mt-2">{loginError}</p>
+              )}
             </div>
-            <div className="flex justify-between px-2 space-x-2">
+
+            {/* Buttons */}
+            <div className="flex justify-end space-x-4 mt-6">
               <button
-                className="border transition-transform hover:scale-105 border-gray-300 mt-4 px-4 py-2 rounded-xl hover:bg-gray-100"
-                onClick={() => setLoginModalOpen(false)}
+                className="px-5 py-2 bg-gray-100 rounded-lg text-gray-800 hover:bg-gray-200 transition-colors"
+                onClick={() => {
+                  setLoginModalOpen(false);
+                  setLoginError("");
+                  setLoginEmail("");
+                  setLoginPassword("")
+                }}
               >
                 Cancel
               </button>
               <button
-                className="bg-cyan-400 mt-4 font-bold transition-transform rounded-xl hover:scale-105 hover:border-4 hover:border-green-300 text-white px-10 py-1 hover:bg-green-600"
+                className="px-6 py-2 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 hover:shadow-md transition-transform transform hover:scale-105"
                 onClick={handleLogin}
               >
                 Login
@@ -900,57 +996,132 @@ function App() {
       )}
 
       {signupModalOpen && (
-        <div className="fixed inset-0 flex items-center justify-center z-50">
-          <div
-            className="absolute inset-0 bg-black opacity-50"
-            onClick={() => setSignupModalOpen(false)}
-          ></div>
-          <div className="bg-white border-4 border-black rounded-xl px-4 pt-6 pb-4 text-center shadow-lg z-10 md:w-1/3 flex flex-col">
-            <h2 className="text-xl text-orange-600 hover:underline decoration-2 decoration-cyan-400 font-semibold mb-4">
-              Signup
+        <div
+          className="fixed inset-0 z-30 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          style={{ fontFamily: "Comic Sans MS, Comic Sans, cursive" }}
+        >
+          {/* Modal Container */}
+          <div className="relative w-full max-w-md mx-auto bg-white rounded-2xl shadow-xl p-6 md:max-w-lg">
+            <button
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+              onClick={() => setSignupModalOpen(false)}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-6 h-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+
+            <h2 className="text-2xl md:text-3xl font-bold text-center mb-4 text-cyan-600">
+              Sign Up
             </h2>
-            <div className="flex-grow overflow-auto flex flex-col items-center px-2">
-              <input
-                className="border-2 border-orange-300 rounded-lg mb-2 p-2 w-full"
-                type="text"
-                placeholder="Enter name..."
-                value={signupName}
-                onChange={(e) => setSignupName(e.target.value)}
-              />
-              <input
-                className="border-2 border-orange-300 rounded-lg mb-2 p-2 w-full"
-                type="text"
-                placeholder="Create a username..."
-                value={signupUsername}
-                onChange={(e) => setSignupUsername(e.target.value)}
-              />
-              <input
-                className="border-2 border-orange-300 rounded-lg mb-2 p-2 w-full"
-                type="email"
-                placeholder="Email"
-                value={signupEmail}
-                onChange={(e) => setSignupEmail(e.target.value)}
-              />
-              <input
-                className="border-2 border-orange-300 rounded-lg mb-2 p-2 w-full"
-                type="password"
-                placeholder="Password"
-                value={signupPassword}
-                onChange={(e) => setSignupPassword(e.target.value)}
-              />
+
+            <div className="flex flex-col space-y-4">
+              <div>
+                <input
+                  className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-400 transition"
+                  type="text"
+                  placeholder="Name..."
+                  value={signupName}
+                  onChange={(e) => {
+                    setSignupName(e.target.value);
+                    setSignupErrors((prev) => ({ ...prev, name: "" }));
+                  }}
+                />
+                {signupErrors.name && (
+                  <p className="text-red-600 text-sm mt-1">
+                    {signupErrors.name}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <input
+                  className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-400 transition"
+                  type="text"
+                  placeholder="Username..."
+                  value={signupUsername}
+                  onChange={(e) => {
+                    setSignupUsername(e.target.value);
+                    setSignupErrors((prev) => ({ ...prev, username: "" }));
+                  }}
+                />
+                {signupErrors.username && (
+                  <p className="text-red-600 text-sm mt-1">
+                    {signupErrors.username}
+                  </p>
+                )}
+              </div>
+
+              {/* Email */}
+              <div>
+                <input
+                  className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-400 transition"
+                  type="email"
+                  placeholder="Email..."
+                  value={signupEmail}
+                  onChange={(e) => {
+                    setSignupEmail(e.target.value);
+                    setSignupErrors((prev) => ({ ...prev, email: "" }));
+                  }}
+                />
+                {signupErrors.email && (
+                  <p className="text-red-600 text-sm mt-1">
+                    {signupErrors.email}
+                  </p>
+                )}
+              </div>
+
+              {/* Password */}
+              <div>
+                <input
+                  className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-400 transition"
+                  type="password"
+                  placeholder="Password..."
+                  value={signupPassword}
+                  onChange={(e) => {
+                    setSignupPassword(e.target.value);
+                    setSignupErrors((prev) => ({ ...prev, password: "" }));
+                  }}
+                />
+                {signupErrors.password && (
+                  <p className="text-red-600 text-sm mt-1">
+                    {signupErrors.password}
+                  </p>
+                )}
+              </div>
             </div>
-            <div className="flex justify-between px-2 space-x-2">
+
+            {/* Buttons */}
+            <div className="flex justify-end space-x-4 mt-6">
               <button
-                className="border transition-transform hover:scale-105 border-gray-300 mt-4 px-4 py-2 rounded-xl hover:bg-gray-100"
-                onClick={() => setSignupModalOpen(false)}
+                className="px-5 py-2 bg-gray-100 rounded-lg text-gray-800 hover:bg-gray-200 transition-colors"
+                onClick={() => {
+                  setSignupModalOpen(false)
+                  setSignupErrors({ name: "", username: "", email: "", password: "" });
+                  setSignupName("");
+                  setSignupUsername("");
+                  setSignupEmail("");
+                  setSignupPassword("");
+                }}
               >
                 Cancel
               </button>
               <button
-                className="bg-cyan-400 mt-4 font-bold transition-transform rounded-xl hover:scale-105 hover:border-4 hover:border-green-300 text-white px-10 py-1 hover:bg-green-600"
+                className="px-6 py-2 bg-cyan-400 text-white rounded-lg font-semibold hover:bg-cyan-600 hover:shadow-md transition-transform transform hover:scale-105"
                 onClick={handleSignup}
               >
-                Signup
+                Sign Up!
               </button>
             </div>
           </div>
