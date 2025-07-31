@@ -4,11 +4,7 @@
 
 ## Overview
 ### Project Summary
-Lessonly is a virtual lesson planner for teachers. It features a calendar-based interface where educators can add daily notes, integrate AI-generated lesson plans, and track existing lessons for multiple grade levels. This tool is meant to help teachers save time and centralize teaching resources into one application
-
-## Authors
-- **Moatasim Butt** – MoatasimB – moatasim@seas.upenn.edu – [github.com/MoatasimB](https://github.com/MoatasimB)  
-- **Faris Karim** – FarisKarim – farisk@seas.upenn.edu – [github.com/FarisKarim](https://github.com/FarisKarim) 
+Lessonly is a virtual lesson planner for teachers. It features a calendar-based interface where educators can add daily notes, integrate AI-generated lesson plans, and track existing lessons for multiple grade levels. This tool is meant to help teachers save time and centralize teaching resources into one 
 
 ## Usage
 
